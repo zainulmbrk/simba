@@ -17,10 +17,11 @@ export default defineConfig({
             },
         }),
         tailwindcss(),
-        wayfinder({
+        // Hanya jalankan wayfinder jika TIDAK sedang di Vercel
+        !process.env.VERCEL && wayfinder({
             formVariants: true,
         }),
-    ],
+    ].filter(Boolean), // Filter Boolean ini penting untuk menghapus nilai 'false' dari array
     esbuild: {
         jsx: 'automatic',
     },
