@@ -18,17 +18,20 @@ export default function AuthSplitLayout({
                 <div className="absolute inset-0 bg-red-900" />
                 <div className="relative z-20 flex h-full flex-col items-center justify-center gap-4">
                     {/* <p className='font-bold text-5xl'>SIMBA</p> */}
-                    <h2 className="text-center text-3xl font-bold tracking-wider">
-                        SIMBA
-                    </h2>
-                    <img
-                        src="/assets/logo-kpu.svg.png"
-                        alt="Logo"
-                        width={200}
-                        height={200}
-                    />
+                    <div className="flex gap-8">
+                        <img
+                            src="/assets/logo-kpu.svg.png"
+                            alt="Logo"
+                            width={100}
+                            height={100}
+                        />
+                        <div className="flex flex-col justify-between">
+                            <p className="text-7xl font-bold">KPU</p>
+                            <p className="text-5xl">KOTA BIMA</p>
+                        </div>
+                    </div>
                     <h1 className="text-center text-xl font-bold tracking-wider">
-                        Sistem Informasi Manajemen <br /> Barang Milik Negara
+                        Sistem Informasi Manajemen Barang (SIMBA)
                     </h1>
                 </div>
             </div>
@@ -38,12 +41,18 @@ export default function AuthSplitLayout({
                         href={home()}
                         className="relative z-20 flex items-center justify-center lg:hidden"
                     >
-                        <img
-                            src="/assets/logo-kpu.svg.png"
-                            alt="Logo"
-                            width={75}
-                            height={75}
-                        />
+                        <div className="flex gap-4">
+                            <img
+                                src="/assets/logo-kpu.svg.png"
+                                alt="Logo"
+                                width={75}
+                                height={75}
+                            />
+                            <div className="flex flex-col justify-between">
+                                <p className="text-5xl font-bold">KPU</p>
+                                <p className="text-3xl">KOTA BIMA</p>
+                            </div>
+                        </div>
                     </Link>
                     <div className="flex flex-col items-start gap-2 text-left sm:items-center sm:text-center">
                         <h1 className="text-xl font-medium">{title}</h1>
