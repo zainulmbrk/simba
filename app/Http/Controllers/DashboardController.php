@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Item;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Spatie\Activitylog\Models\Activity;
 
@@ -9,61 +10,65 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. Mengambil Statistik Barang
+        $user = Auth::user();
+
+        // LOGIKA PENENTU ADMIN:
+        // User dianggap Admin jika ID-nya adalah 1 atau kolom 'role' bernilai 'admin'
+        $isAdmin = ($user->id === 1 || (isset($user->role) && $user->role === 'admin'));
+
+        // 1. QUERY STATISTIK BARANG
+        $itemQuery = Item::query();
+
+        // Jika bukan admin, hanya hitung barang milik user ini
+        if (! $isAdmin) {
+            $itemQuery->where('user_id', $user->id);
+        }
+
         $stats = [
-            'total_items'    => Item::count(),
+            'total_items'    => (clone $itemQuery)->count(),
 
-            // Menghitung barang berdasarkan relasi condition
-            // DashboardController.php
-
-            'good_condition' => Item::whereHas('condition', function ($q) {
-                // Gunakan 'like' dengan lowercase untuk menghindari case-sensitivity database
+            'good_condition' => (clone $itemQuery)->whereHas('condition', function ($q) {
                 $q->where('name', 'like', '%baik%')
                     ->orWhere('name', 'like', '%layak%');
             })->count(),
 
-            'active_items'   => Item::whereHas('status', function ($q) {
-                // Pastikan status 'Tersedia' atau 'Aktif' sesuai dengan isi table master_statuses
+            'active_items'   => (clone $itemQuery)->whereHas('status', function ($q) {
                 $q->where('name', 'like', '%tersedia%')
                     ->orWhere('name', 'like', '%aktif%');
             })->count(),
 
-            'bad_condition'  => Item::whereHas('condition', function ($q) {
-                $q->where('name', 'like', '%Rusak%')
-                    ->orWhere('name', 'like', '%Buruk%');
+            'bad_condition'  => (clone $itemQuery)->whereHas('condition', function ($q) {
+                $q->where('name', 'like', '%rusak%')
+                    ->orWhere('name', 'like', '%buruk%');
             })->count(),
-
         ];
 
-        // 2. Mengambil 5 Aktivitas Terbaru untuk Audit Trail di Dashboard
-        $recentLogs = Activity::with('causer')
-            ->latest()
-            ->take(8) // Kita ambil 8 agar tampilan dashboard lebih penuh
+        // 2. QUERY LOG AKTIVITAS
+        $logQuery = Activity::with('causer');
+
+        // Jika bukan admin, hanya tampilkan log aktivitas yang dilakukan oleh user ini
+        if (! $isAdmin) {
+            $logQuery->where('causer_id', $user->id);
+        }
+
+        $recentLogs = $logQuery->latest()
+            ->take(10)
             ->get()
             ->map(function ($log) {
                 return [
-                    'id'           => $log->id,
-                    'description'  => $log->description,
-                    'event'        => $log->event,
-                    'causer'       => $log->causer ? ['name' => $log->causer->name] : ['name' => 'Sistem'],
-                    'created_at'   => $log->created_at->toDateTimeString(),
-                    // Kita ambil nama barang dari subject jika masih ada
-                    'subject_name' => $log->subject?->name ?? ($log->properties['old_name'] ?? 'Aset'),
+                    'id'          => $log->id,
+                    'description' => $log->description,
+                    'event'       => $log->event,
+                    'causer'      => $log->causer ? ['name' => $log->causer->name] : ['name' => 'Sistem'],
+                    'created_at'  => $log->created_at->toISOString(),
                 ];
             });
 
-        // 3. (Opsional) Data untuk Grafik Bar - Sebaran per Kategori
-        $categoriesData = \App\Models\MasterCategory::withCount('items')->get()->map(function ($cat) {
-            return [
-                'name'  => $cat->name,
-                'total' => $cat->items_count,
-            ];
-        });
-
-        return Inertia::render('Dashboard', [
-            'stats'          => $stats,
-            'recentLogs'     => $recentLogs,
-            'categoriesData' => $categoriesData,
+        // 3. RENDER KE VIEW
+        return Inertia::render('dashboard', [
+            'stats'      => $stats,
+            'recentLogs' => $recentLogs,
+            'isAdmin'    => $isAdmin,
         ]);
     }
 }

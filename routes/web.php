@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\MasterCategoryAttributeController;
 use App\Http\Controllers\MasterCategoryController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\MasterStatusController;
 use App\Http\Controllers\MasterUserController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -46,9 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('scan');
 
     // --- Dashboard ---
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // GET NUP
     // Route untuk mengambil NUP selanjutnya berdasarkan kode barang
@@ -135,6 +135,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/locations/{location}', [MasterCategoryController::class, 'destroyLocation']);
     });
 
+});
+
+Route::get('/perbaiki-gambar', function () {
+    // Menghapus jembatan lama jika ada yang salah/error
+    if (file_exists(public_path('storage'))) {
+        rmdir(public_path('storage'));
+    }
+
+    // Membuat jembatan baru
+    Artisan::call('storage:link');
+
+    return "Jembatan gambar sudah dibuat! Silakan cek kembali halaman List Barang.";
 });
 
 // Load routes bawaan untuk profil & settings

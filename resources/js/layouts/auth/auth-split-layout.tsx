@@ -18,6 +18,9 @@ export default function AuthSplitLayout({
                 <div className="absolute inset-0 bg-red-900" />
                 <div className="relative z-20 flex h-full flex-col items-center justify-center gap-4">
                     {/* <p className='font-bold text-5xl'>SIMBA</p> */}
+                    <h2 className="text-center text-3xl font-bold tracking-wider">
+                        SIMBA
+                    </h2>
                     <img
                         src="/assets/logo-kpu.svg.png"
                         alt="Logo"
