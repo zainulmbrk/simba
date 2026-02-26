@@ -8,7 +8,7 @@ type ItemFormProps = {
     categories: any[];
     statuses: any[];
     conditions: any[];
-    users: any[]; // Tambahkan props users
+    users: any[];
     attributes: Record<string, string>;
     setAttributes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
     locationValues: Record<string, string>;
@@ -25,7 +25,7 @@ export function ItemForm({
     categories = [],
     statuses = [],
     conditions = [],
-    users = [], // Default ke array kosong
+    users = [],
     attributes,
     setAttributes,
     locationValues,
@@ -38,43 +38,41 @@ export function ItemForm({
         register,
         handleSubmit,
         setValue,
-        reset,
+        reset, // Digunakan untuk update data saat mode Edit
         watch,
         formState: { errors },
     } = useForm<ItemFormValues>({
         defaultValues: initialValues,
     });
 
-    // STATE
+    /* =================== STATE =================== */
     const [searchTerm, setSearchTerm] = useState(initialValues.name || '');
     const [showSuggestions, setShowSuggestions] = useState(false);
 
+    /* =================== EFFECT: SYNC DATA (MODAL EDIT) =================== */
+    // Kode ini yang sebelumnya tidak ketemu. Ini diletakkan di bagian atas agar
+    // Form langsung terisi saat modal dibuka.
     useEffect(() => {
-        if (initialValues.name) {
-            setSearchTerm(initialValues.name);
-            // Pastikan react-hook-form juga tahu code-nya saat mulai edit
-            setValue('code', initialValues.code);
-            setValue('name', initialValues.name);
-        } else {
-            setSearchTerm('');
-        }
-    }, [initialValues, setValue]);
+        if (initialValues) {
+            // 1. Reset nilai di dalam react-hook-form (termasuk dropdown)
+            reset(initialValues);
 
-    // NUP
+            // 2. Sync pencarian nama barang
+            setSearchTerm(initialValues.name || '');
+
+            // 3. Sync state eksternal untuk Atribut
+            if (initialValues.attributes) {
+                setAttributes(initialValues.attributes);
+            }
+
+            // 4. Sync state eksternal untuk Lokasi
+            const locValues = (initialValues as any).location_values || {};
+            setLocationValues(locValues);
+        }
+    }, [initialValues, reset, setAttributes, setLocationValues]);
+
     /* =================== LOGIKA NUP OTOMATIS =================== */
     const watchCode = watch('code');
-
-    useEffect(() => {
-        // Hanya jalan jika ada code dan bukan dalam mode edit (initialValues.nup kosong)
-        if (watchCode && !initialValues.nup) {
-            // Opsional: Anda bisa fetch ke API untuk dapat NUP terbaru secara live
-            // fetch(`/api/items/next-nup?code=${watchCode}`)
-            //     .then(res => res.json())
-            //     .then(data => setValue('nup', data.next_nup));
-            // Sementara, kita biarkan backend yang handle jika user mengosongkan,
-            // atau beri info di UI.
-        }
-    }, [watchCode, initialValues.nup, setValue]);
 
     const suggestions =
         searchTerm.length >= 2
@@ -85,10 +83,10 @@ export function ItemForm({
                   .slice(0, 10)
             : [];
 
-    /* =================== SHOW CATEGORY =================== */
+    /* =================== SHOW CATEGORY & DINAMIS =================== */
     const selectedCategoryId = watch('category');
     const selectedCategory = categories.find(
-        (c) => c.id.toString() === selectedCategoryId,
+        (c) => c.id.toString() === selectedCategoryId?.toString(),
     );
 
     useEffect(() => {
@@ -101,23 +99,21 @@ export function ItemForm({
             });
             return next;
         });
-    }, [selectedCategory]);
+    }, [selectedCategory, setAttributes]);
 
     useEffect(() => {
         if (!selectedCategory) return;
 
         setLocationValues((prev) => {
-            const next: Record<string, string> = { ...prev }; // Ambil data yang sudah ada (dari props edit)
-
+            const next: Record<string, string> = { ...prev };
             selectedCategory.locations?.forEach((loc: any) => {
-                // Hanya isi dengan string kosong jika kuncinya benar-benar belum ada
                 if (!(loc.key in next)) {
                     next[loc.key] = '';
                 }
             });
             return next;
         });
-    }, [selectedCategory, setLocationValues]); // Tambahkan setLocationValues ke dependency
+    }, [selectedCategory, setLocationValues]);
 
     /* =================== FILTER SEKRETARIS =================== */
     const secretaries = users.filter((u) => {
@@ -125,7 +121,6 @@ export function ItemForm({
         return jabatan.toLowerCase().includes('sekretaris');
     });
 
-    //GET USER
     const { auth } = usePage().props as any;
     const isAdmin = auth.user.role === 'admin';
 
@@ -138,8 +133,6 @@ export function ItemForm({
             {/* Nama & Kode Barang */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="relative">
-                    {' '}
-                    {/* Tambahkan relative untuk dropdown */}
                     <label className="text-xs font-medium text-muted-foreground">
                         Nama Barang
                     </label>
@@ -149,7 +142,7 @@ export function ItemForm({
                         value={searchTerm}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
-                            setValue('name', e.target.value); // Update nilai di react-hook-form
+                            setValue('name', e.target.value);
                             setShowSuggestions(true);
                         }}
                         onBlur={() =>
@@ -165,7 +158,6 @@ export function ItemForm({
                                     className="cursor-pointer border-b px-4 py-2 text-sm last:border-0 hover:bg-blue-50 hover:text-blue-700"
                                     onClick={() => {
                                         setSearchTerm(ref.name);
-                                        // Tambahkan { shouldDirty: true, shouldValidate: true }
                                         setValue('name', ref.name, {
                                             shouldDirty: true,
                                             shouldValidate: true,
@@ -174,6 +166,7 @@ export function ItemForm({
                                             shouldDirty: true,
                                             shouldValidate: true,
                                         });
+
                                         fetch(`/items/next-nup/${ref.code}`)
                                             .then((response) => response.json())
                                             .then((data) => {
@@ -205,10 +198,9 @@ export function ItemForm({
                         className="w-full rounded border bg-gray-50 px-3 py-2 font-mono text-sm"
                         {...register('code', { required: 'Wajib diisi' })}
                         placeholder="Otomatis terisi..."
-                        readOnly // Biar user tidak asal ubah kode yang sudah standar
+                        readOnly
                     />
                 </div>
-                {/* NUP (Nomor Urut Perolehan) */}
                 <div>
                     <label className="text-xs font-medium text-muted-foreground">
                         NUP (No. Urut)
@@ -217,7 +209,7 @@ export function ItemForm({
                         type="number"
                         className="w-full rounded border px-3 py-2 text-sm"
                         {...register('nup')}
-                        placeholder="Otomatis" // ⬅️ Biarkan placeholder yang muncul, bukan angka 0
+                        placeholder="Otomatis"
                     />
                 </div>
             </div>
@@ -296,7 +288,7 @@ export function ItemForm({
                 </div>
             </div>
 
-            {/* Foto & Lokasi */}
+            {/* Foto */}
             <div>
                 <label className="text-xs font-medium text-muted-foreground">
                     Foto Barang
@@ -309,7 +301,7 @@ export function ItemForm({
                 />
             </div>
 
-            {/* --- BAGIAN LOKASI DINAMIS --- */}
+            {/* Detil Lokasi Dinamis */}
             {selectedCategory?.locations?.length > 0 && (
                 <div className="mt-6 space-y-3">
                     <h3 className="border-b pb-1 text-sm font-bold">
@@ -335,7 +327,7 @@ export function ItemForm({
                 </div>
             )}
 
-            {/* --- PENGGUNA BARANG (DROPDOWN) --- */}
+            {/* Pengguna Barang (Khusus Admin) */}
             {isAdmin && (
                 <div className="space-y-1">
                     <label className="text-xs font-medium text-muted-foreground">
@@ -347,7 +339,7 @@ export function ItemForm({
                     >
                         <option value="">-- Pilih Pengguna --</option>
                         {users.map((u) => (
-                            <option key={u.id} value={u.id}>
+                            <option key={u.id} value={u.id.toString()}>
                                 {u.name}
                             </option>
                         ))}
@@ -360,7 +352,7 @@ export function ItemForm({
                 </div>
             )}
 
-            {/* --- PENANGGUNG JAWAB (SELECT) --- */}
+            {/* Penanggung Jawab */}
             <div>
                 <label className="text-xs font-medium text-muted-foreground">
                     Penanggung Jawab
@@ -378,19 +370,6 @@ export function ItemForm({
                         </option>
                     ))}
                 </select>
-
-                {/* Feedback jika filter berhasil atau gagal */}
-                {errors.responsible && (
-                    <p className="mt-1 text-xs text-red-500">
-                        Wajib pilih penanggung jawab
-                    </p>
-                )}
-                {secretaries.length === 0 && (
-                    <p className="mt-1 text-[10px] text-amber-600 italic">
-                        *Data dengan job_title "Sekretaris" tidak ditemukan di
-                        array users.
-                    </p>
-                )}
             </div>
         </form>
     );

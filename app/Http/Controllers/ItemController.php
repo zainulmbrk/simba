@@ -125,9 +125,13 @@ class ItemController extends Controller
                 'code'            => $item->code,
                 'nup'             => $item->nup,
                 'category'        => $item->category?->name,
+                'category_id'     => $item->category_id, // Tambahkan ini
                 'status'          => $item->status?->name,
+                'status_id'       => $item->status_id, // Tambahkan ini
                 'condition'       => $item->condition?->name,
+                'condition_id'    => $item->condition_id, // Tambahkan ini
                 'user'            => $item->user?->name ?? '-',
+                'user_id'         => $item->user_id, // Tambahkan ini
                 'responsible'     => $item->responsible,
                 'files'           => $item->files,
                 'attributes'      => is_array($item->attributes) ? $item->attributes : [],
@@ -135,6 +139,12 @@ class ItemController extends Controller
             ],
             'attributeLabels' => $attributeLabels,
             'locationLabels'  => $locationLabels,
+            // --- TAMBAHKAN DATA DI BAWAH INI ---
+            'categories'      => MasterCategory::with(['attributes', 'locations'])->get(),
+            'statuses'        => MasterStatus::all(),
+            'conditions'      => MasterCondition::all(),
+            'users'           => User::all(),
+            'itemReferences'  => \App\Models\MasterItemReference::select('code', 'name')->get(),
         ]);
     }
 

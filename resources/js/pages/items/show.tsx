@@ -96,14 +96,17 @@ export default function Item() {
                             </h1>
                             <Button
                                 onClick={() => {
-                                    setAttributes(safeAttributes);
-                                    setLocationValues(safeLocationValues);
+                                    setAttributes(item.attributes || {});
+                                    // Ambil location_values dari props item
+                                    setLocationValues(
+                                        item.location_values || {},
+                                    );
                                     setOpenEdit(true);
                                 }}
                                 variant="default"
                                 size="lg"
                             >
-                                <SquarePenIcon className="h-4 w-4" />
+                                <SquarePenIcon className="mr-2 h-4 w-4" />
                                 Edit
                             </Button>
                         </div>
@@ -356,16 +359,8 @@ export default function Item() {
                             Batal
                         </Button>
                         <Button
-                            onClick={() =>
-                                document
-                                    .getElementById('item-main-form')
-                                    ?.dispatchEvent(
-                                        new Event('submit', {
-                                            cancelable: true,
-                                            bubbles: true,
-                                        }),
-                                    )
-                            }
+                            type="submit"
+                            form="item-main-form" // Panggil ID Form secara langsung
                             variant="default"
                             size="lg"
                         >
