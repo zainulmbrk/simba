@@ -5,7 +5,7 @@ import { ItemForm } from '@/layouts/items/item-form';
 import { mapItemToForm } from '@/layouts/items/item-form.helpers';
 import ItemsLayout from '@/layouts/items/layout';
 import type { Item } from '@/types';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, ItemFormValues } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import { ChevronDownIcon, SquarePenIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -46,10 +46,41 @@ export default function Item() {
     >({});
     const [open, setOpen] = useState(false);
     const [openLocation, setOpenLocation] = useState(false);
+    const [editingItem, setEditingItem] = useState<Item | null>(null);
 
     /* =================== HANDLE SUBMIT =================== */
-    const onSubmit = (data: any) => {
+    // const onSubmit = (data: any) => {
+    //     const formData = new FormData();
+    //     Object.entries(data).forEach(([key, value]) => {
+    //         if (value !== undefined && value !== null) {
+    //             if (key === 'photo' && value instanceof FileList) {
+    //                 if (value.length > 0) formData.append('photo', value[0]);
+    //             } else {
+    //                 formData.append(key, value as any);
+    //             }
+    //         }
+    //     });
+
+    //     if (Object.keys(attributes).length > 0) {
+    //         formData.append('attributes', JSON.stringify(attributes));
+    //     }
+
+    //     if (Object.keys(locationValues).length > 0) {
+    //         formData.append('location_values', JSON.stringify(locationValues));
+    //     }
+
+    //     formData.append('redirect_to', 'show');
+    //     formData.append('_method', 'PUT');
+
+    //     router.post(`/items/${item.id}`, formData, {
+    //         onSuccess: () => setOpenEdit(false),
+    //     });
+    // };
+
+    /* =================== HANDLE SUBMIT (PERBAIKAN) =================== */
+    const onSubmit = (data: ItemFormValues) => {
         const formData = new FormData();
+
         Object.entries(data).forEach(([key, value]) => {
             if (value !== undefined && value !== null) {
                 if (key === 'photo' && value instanceof FileList) {
@@ -63,16 +94,19 @@ export default function Item() {
         if (Object.keys(attributes).length > 0) {
             formData.append('attributes', JSON.stringify(attributes));
         }
-
         if (Object.keys(locationValues).length > 0) {
             formData.append('location_values', JSON.stringify(locationValues));
         }
 
-        formData.append('redirect_to', 'show');
+        // PAKSA menggunakan metode PUT untuk update
         formData.append('_method', 'PUT');
 
+        // Gunakan ID dari item yang sedang aktif (item.id)
         router.post(`/items/${item.id}`, formData, {
-            onSuccess: () => setOpenEdit(false),
+            onSuccess: () => {
+                setOpenEdit(false);
+                // Opsional: tampilkan toast sukses di sini
+            },
         });
     };
 

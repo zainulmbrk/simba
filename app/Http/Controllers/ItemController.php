@@ -158,6 +158,56 @@ class ItemController extends Controller
         return $this->processSave($item, $request);
     }
 
+    // protected function processSave(Item $item, Request $request)
+    // {
+    //     $currentUser = Auth::user();
+    //     $rules       = [
+    //         'name'        => 'required|string',
+    //         'code'        => 'required|string',
+    //         'nup'         => 'nullable|integer',
+    //         'category'    => 'required|integer',
+    //         'status'      => 'required|integer',
+    //         'condition'   => 'required|integer',
+    //         'responsible' => 'required|string',
+    //         'photo'       => 'nullable|file|image',
+    //     ];
+
+    //     if ($currentUser && $currentUser->role === 'admin') {
+    //         $rules['user_id'] = 'required|integer';
+    //     }
+
+    //     $validated = $request->validate($rules);
+
+    //     $item->name         = $validated['name'];
+    //     $item->code         = $validated['code'];
+    //     $item->category_id  = $validated['category'];
+    //     $item->status_id    = $validated['status'];
+    //     $item->condition_id = $validated['condition'];
+    //     $item->responsible  = $validated['responsible'];
+    //     $item->user_id      = ($currentUser->role === 'admin') ? $request->input('user_id') : $currentUser->id;
+
+    //     if (! $item->exists && (empty($validated['nup']) || $validated['nup'] == 0)) {
+    //         $lastNup   = Item::where('code', $validated['code'])->max('nup');
+    //         $item->nup = $lastNup ? $lastNup + 1 : 1;
+    //     } else {
+    //         $item->nup = $validated['nup'] ?? $item->nup;
+    //     }
+
+    //     $item->location_values = $request->input('location_values', []);
+    //     $item->attributes      = $request->input('attributes', []);
+
+    //     if ($request->hasFile('photo')) {
+    //         if ($item->files) {
+    //             Storage::disk('public')->delete($item->files);
+    //         }
+
+    //         $item->files = $request->file('photo')->store('items', 'public');
+    //     }
+
+    //     $item->save();
+    //     return redirect()->route('items.index')->with('success', 'Berhasil disimpan');
+    // }
+
     protected function processSave(Item $item, Request $request)
     {
         $currentUser = Auth::user();
@@ -193,18 +243,29 @@ class ItemController extends Controller
             $item->nup = $validated['nup'] ?? $item->nup;
         }
 
-        $item->location_values = $request->input('location_values', []);
-        $item->attributes      = $request->input('attributes', []);
+        // --- PERBAIKAN DI SINI ---
+        // Cek apakah data berupa string (JSON), jika ya maka decode. Jika sudah array, pakai langsung.
+        $attrs            = $request->input('attributes');
+        $item->attributes = is_string($attrs) ? json_decode($attrs, true) : ($attrs ?? []);
+
+        $locs                  = $request->input('location_values');
+        $item->location_values = is_string($locs) ? json_decode($locs, true) : ($locs ?? []);
+        // -------------------------
 
         if ($request->hasFile('photo')) {
             if ($item->files) {
                 Storage::disk('public')->delete($item->files);
             }
-
             $item->files = $request->file('photo')->store('items', 'public');
         }
 
         $item->save();
+
+        // Perbaikan Redirect: Jika ada instruksi redirect_to, ikuti.
+        if ($request->input('redirect_to') === 'show') {
+            return redirect()->route('items.show', $item->id)->with('success', 'Berhasil diupdate');
+        }
+
         return redirect()->route('items.index')->with('success', 'Berhasil disimpan');
     }
 
@@ -246,29 +307,36 @@ class ItemController extends Controller
 
     public function publicInfo($id)
     {
-        // Gunakan find() agar kita bisa cek manual jika data tidak ada
         $item = Item::with(['category', 'status', 'condition', 'user'])->find($id);
 
         if (! $item) {
             abort(404, 'Barang tidak ditemukan');
         }
 
-        // Pastikan data dipetakan dengan aman sebelum dikirim ke React
+        // Ambil label agar di halaman QR tidak muncul "room_name" tapi "Nama Ruangan"
+        $attributeLabels = MasterCategoryAttribute::where('master_category_id', $item->category_id)
+            ->pluck('name', 'key')->toArray();
+
+        $locationLabels = MasterCategoryLocation::where('master_category_id', $item->category_id)
+            ->pluck('name', 'key')->toArray();
+
         return Inertia::render('items/public-info', [
-            'item' => [
+            'item'            => [
                 'id'              => $item->id,
-                'name'            => $item->name ?? 'Tidak ada nama',
-                'code'            => $item->code ?? '-',
-                'nup'             => $item->nup ?? '-',
-                'category'        => $item->category?->name ?? 'Tanpa Kategori',
-                'status'          => $item->status?->name ?? '-',
-                'condition'       => $item->condition?->name ?? '-',
-                'user'            => $item->user?->name ?? 'Belum ada pengguna',
-                'responsible'     => $item->responsible ?? '-',
+                'name'            => $item->name,
+                'code'            => $item->code,
+                'nup'             => $item->nup,
+                'category'        => $item->category,  // Kirim objek utuh
+                'status'          => $item->status,    // Kirim objek utuh
+                'condition'       => $item->condition, // Kirim objek utuh
+                'user'            => $item->user,      // Kirim objek utuh
+                'responsible'     => $item->responsible,
                 'files'           => $item->files,
                 'attributes'      => is_array($item->attributes) ? $item->attributes : [],
                 'location_values' => is_array($item->location_values) ? $item->location_values : [],
             ],
+            'attributeLabels' => $attributeLabels,
+            'locationLabels'  => $locationLabels,
         ]);
     }
 }

@@ -38,89 +38,76 @@ export function ItemForm({
         register,
         handleSubmit,
         setValue,
-        reset, // Digunakan untuk update data saat mode Edit
+        reset,
         watch,
         formState: { errors },
     } = useForm<ItemFormValues>({
         defaultValues: initialValues,
     });
 
-    /* =================== STATE =================== */
     const [searchTerm, setSearchTerm] = useState(initialValues.name || '');
     const [showSuggestions, setShowSuggestions] = useState(false);
 
-    /* =================== EFFECT: SYNC DATA (MODAL EDIT) =================== */
-    // Kode ini yang sebelumnya tidak ketemu. Ini diletakkan di bagian atas agar
-    // Form langsung terisi saat modal dibuka.
+    /* =================== 1. SYNC DATA AWAL (HANYA SEKALI SAAT BUKA) =================== */
     useEffect(() => {
         if (initialValues) {
-            // 1. Reset nilai di dalam react-hook-form (termasuk dropdown)
             reset(initialValues);
-
-            // 2. Sync pencarian nama barang
             setSearchTerm(initialValues.name || '');
 
-            // 3. Sync state eksternal untuk Atribut
+            // Langsung isi state eksternal dari data database
             if (initialValues.attributes) {
                 setAttributes(initialValues.attributes);
             }
-
-            // 4. Sync state eksternal untuk Lokasi
-            const locValues = (initialValues as any).location_values || {};
-            setLocationValues(locValues);
+            if ((initialValues as any).location_values) {
+                setLocationValues((initialValues as any).location_values);
+            }
         }
-    }, [initialValues, reset, setAttributes, setLocationValues]);
+    }, [initialValues.id]); // Trigger hanya jika ID barang berubah (saat ganti barang yang diedit)
 
-    /* =================== LOGIKA NUP OTOMATIS =================== */
-    const watchCode = watch('code');
-
-    const suggestions =
-        searchTerm.length >= 2
-            ? itemReferences
-                  .filter((ref) =>
-                      ref.name.toLowerCase().includes(searchTerm.toLowerCase()),
-                  )
-                  .slice(0, 10)
-            : [];
-
-    /* =================== SHOW CATEGORY & DINAMIS =================== */
     const selectedCategoryId = watch('category');
     const selectedCategory = categories.find(
         (c) => c.id.toString() === selectedCategoryId?.toString(),
     );
 
+    /* =================== 2. LOGIKA PROTEKSI LOKASI & ATRIBUT =================== */
     useEffect(() => {
         if (!selectedCategory) return;
 
+        // Update Atribut tanpa menghapus yang sudah ada
         setAttributes((prev) => {
-            const next: Record<string, string> = {};
+            const next = { ...prev };
             selectedCategory.attributes?.forEach((attr: any) => {
-                next[attr.key] = prev[attr.key] ?? '';
+                if (!(attr.key in next)) next[attr.key] = '';
             });
             return next;
         });
-    }, [selectedCategory, setAttributes]);
 
-    useEffect(() => {
-        if (!selectedCategory) return;
-
+        // Update Lokasi tanpa menghapus yang sudah ada
         setLocationValues((prev) => {
-            const next: Record<string, string> = { ...prev };
+            const next = { ...prev };
             selectedCategory.locations?.forEach((loc: any) => {
+                // HANYA isi kosong jika benar-benar tidak ada di data database maupun state
                 if (!(loc.key in next)) {
                     next[loc.key] = '';
                 }
             });
             return next;
         });
-    }, [selectedCategory, setLocationValues]);
+    }, [selectedCategory]);
 
-    /* =================== FILTER SEKRETARIS =================== */
-    const secretaries = users.filter((u) => {
-        const jabatan = u.job_title || '';
-        return jabatan.toLowerCase().includes('sekretaris');
-    });
+    /* =================== LOGIKA LAINNYA =================== */
+    const suggestions =
+        searchTerm.length >= 2
+            ? itemReferences
+                  .filter((r) =>
+                      r.name.toLowerCase().includes(searchTerm.toLowerCase()),
+                  )
+                  .slice(0, 10)
+            : [];
 
+    const secretaries = users.filter((u) =>
+        (u.job_title || '').toLowerCase().includes('sekretaris'),
+    );
     const { auth } = usePage().props as any;
     const isAdmin = auth.user.role === 'admin';
 
@@ -130,7 +117,7 @@ export function ItemForm({
             onSubmit={handleSubmit(onSubmit)}
             className="max-h-[65vh] space-y-4 overflow-y-auto px-1 py-2"
         >
-            {/* Nama & Kode Barang */}
+            {/* Nama, Kode, NUP */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="relative">
                     <label className="text-xs font-medium text-muted-foreground">
@@ -138,7 +125,6 @@ export function ItemForm({
                     </label>
                     <input
                         className="w-full rounded border px-3 py-2 text-sm"
-                        placeholder="Ketik minimal 2 huruf..."
                         value={searchTerm}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
@@ -149,32 +135,21 @@ export function ItemForm({
                             setTimeout(() => setShowSuggestions(false), 200)
                         }
                     />
-                    {/* DROPDOWN SARAN BARANG */}
                     {showSuggestions && suggestions.length > 0 && (
                         <ul className="absolute z-[100] mt-1 max-h-60 w-full overflow-auto rounded-md border bg-white shadow-xl">
                             {suggestions.map((ref, idx) => (
                                 <li
                                     key={idx}
-                                    className="cursor-pointer border-b px-4 py-2 text-sm last:border-0 hover:bg-blue-50 hover:text-blue-700"
+                                    className="cursor-pointer border-b px-4 py-2 text-sm hover:bg-blue-50"
                                     onClick={() => {
                                         setSearchTerm(ref.name);
-                                        setValue('name', ref.name, {
-                                            shouldDirty: true,
-                                            shouldValidate: true,
-                                        });
-                                        setValue('code', ref.code, {
-                                            shouldDirty: true,
-                                            shouldValidate: true,
-                                        });
-
+                                        setValue('name', ref.name);
+                                        setValue('code', ref.code);
                                         fetch(`/items/next-nup/${ref.code}`)
-                                            .then((response) => response.json())
-                                            .then((data) => {
-                                                setValue('nup', data.next_nup, {
-                                                    shouldDirty: true,
-                                                    shouldValidate: true,
-                                                });
-                                            });
+                                            .then((res) => res.json())
+                                            .then((d) =>
+                                                setValue('nup', d.next_nup),
+                                            );
                                         setShowSuggestions(false);
                                     }}
                                 >
@@ -189,27 +164,24 @@ export function ItemForm({
                         </ul>
                     )}
                 </div>
-
                 <div>
                     <label className="text-xs font-medium text-muted-foreground">
                         Kode Barang
                     </label>
                     <input
-                        className="w-full rounded border bg-gray-50 px-3 py-2 font-mono text-sm"
-                        {...register('code', { required: 'Wajib diisi' })}
-                        placeholder="Otomatis terisi..."
+                        className="w-full rounded border bg-gray-50 px-3 py-2 text-sm"
+                        {...register('code')}
                         readOnly
                     />
                 </div>
                 <div>
                     <label className="text-xs font-medium text-muted-foreground">
-                        NUP (No. Urut)
+                        NUP
                     </label>
                     <input
                         type="number"
                         className="w-full rounded border px-3 py-2 text-sm"
                         {...register('nup')}
-                        placeholder="Otomatis"
                     />
                 </div>
             </div>
@@ -221,7 +193,7 @@ export function ItemForm({
                 </label>
                 <select
                     className="w-full rounded border px-3 py-2 text-sm"
-                    {...register('category', { required: 'Wajib diisi' })}
+                    {...register('category', { required: true })}
                 >
                     <option value="">Pilih Kategori</option>
                     {categories.map((opt) => (
@@ -232,7 +204,7 @@ export function ItemForm({
                 </select>
             </div>
 
-            {/* Input Dinamis Attributes */}
+            {/* Field Dinamis: Atribut (Merk, Tipe, dsb) */}
             {selectedCategory?.attributes?.map((attr: any) => (
                 <div key={attr.id} className="space-y-1">
                     <label className="text-xs font-medium text-muted-foreground">
@@ -262,10 +234,9 @@ export function ItemForm({
                         className="w-full rounded border px-3 py-2 text-sm"
                         {...register('status', { required: true })}
                     >
-                        <option value="">Pilih Status</option>
-                        {statuses.map((opt) => (
-                            <option key={opt.id} value={opt.id.toString()}>
-                                {opt.name}
+                        {statuses.map((o) => (
+                            <option key={o.id} value={o.id.toString()}>
+                                {o.name}
                             </option>
                         ))}
                     </select>
@@ -278,10 +249,9 @@ export function ItemForm({
                         className="w-full rounded border px-3 py-2 text-sm"
                         {...register('condition', { required: true })}
                     >
-                        <option value="">Pilih Kondisi</option>
-                        {conditions.map((opt) => (
-                            <option key={opt.id} value={opt.id.toString()}>
-                                {opt.name}
+                        {conditions.map((o) => (
+                            <option key={o.id} value={o.id.toString()}>
+                                {o.name}
                             </option>
                         ))}
                     </select>
@@ -296,12 +266,12 @@ export function ItemForm({
                 <input
                     type="file"
                     accept="image/*"
-                    className="w-full cursor-pointer rounded border px-3 py-2 text-sm file:mr-4 file:rounded file:border-0 file:bg-accent file:px-2 file:py-1 file:text-xs"
+                    className="w-full border px-3 py-2 text-sm"
                     {...register('photo')}
                 />
             </div>
 
-            {/* Detil Lokasi Dinamis */}
+            {/* Detil Lokasi Dinamis (Nama Ruangan, Kode Ruangan, dsb) */}
             {selectedCategory?.locations?.length > 0 && (
                 <div className="mt-6 space-y-3">
                     <h3 className="border-b pb-1 text-sm font-bold">
@@ -316,10 +286,10 @@ export function ItemForm({
                                 className="w-full rounded border p-2 text-sm"
                                 value={locationValues[loc.key] || ''}
                                 onChange={(e) =>
-                                    setLocationValues({
-                                        ...locationValues,
+                                    setLocationValues((prev) => ({
+                                        ...prev,
                                         [loc.key]: e.target.value,
-                                    })
+                                    }))
                                 }
                             />
                         </div>
@@ -327,9 +297,9 @@ export function ItemForm({
                 </div>
             )}
 
-            {/* Pengguna Barang (Khusus Admin) */}
+            {/* Pengguna & Penanggung Jawab */}
             {isAdmin && (
-                <div className="space-y-1">
+                <div>
                     <label className="text-xs font-medium text-muted-foreground">
                         Pengguna Barang
                     </label>
@@ -344,26 +314,18 @@ export function ItemForm({
                             </option>
                         ))}
                     </select>
-                    {errors.user_id && (
-                        <span className="text-[10px] text-red-500">
-                            {errors.user_id.message}
-                        </span>
-                    )}
                 </div>
             )}
 
-            {/* Penanggung Jawab */}
             <div>
                 <label className="text-xs font-medium text-muted-foreground">
                     Penanggung Jawab
                 </label>
                 <select
                     className="w-full rounded border px-3 py-2 text-sm"
-                    {...register('responsible', {
-                        required: 'Wajib pilih penanggung jawab',
-                    })}
+                    {...register('responsible')}
                 >
-                    <option value="">Pilih </option>
+                    <option value="">Pilih</option>
                     {secretaries.map((s) => (
                         <option key={s.id} value={s.name}>
                             {s.name}

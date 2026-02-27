@@ -74,7 +74,8 @@ export default function PublicInfo({
                                 Pengguna
                             </span>
                             <span className="text-sm font-bold text-slate-800">
-                                {item.user?.name || '-'}
+                                {/* PERBAIKAN: Pastikan akses ke .name jika itu objek */}
+                                {item.user?.name || item.user || '-'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between border-b border-slate-50 pb-3">
@@ -82,7 +83,7 @@ export default function PublicInfo({
                                 Penanggung Jawab
                             </span>
                             <span className="text-sm font-bold text-slate-800">
-                                {item.responsible}
+                                {item.responsible || '-'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between border-b border-slate-50 pb-3">
@@ -90,9 +91,14 @@ export default function PublicInfo({
                                 Kondisi
                             </span>
                             <span
-                                className={`rounded px-2 py-0.5 text-sm font-bold ${item.condition?.name === 'Baik' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                                className={`rounded px-2 py-0.5 text-sm font-bold ${
+                                    (item.condition?.name || item.condition) ===
+                                    'Baik'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-red-100 text-red-700'
+                                }`}
                             >
-                                {item.condition?.name}
+                                {item.condition?.name || item.condition || '-'}
                             </span>
                         </div>
                     </div>
@@ -110,10 +116,12 @@ export default function PublicInfo({
                                         className="flex flex-col rounded-xl border border-slate-100 p-3"
                                     >
                                         <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                            {locationLabels[key] || key}
+                                            {/* Sekarang label akan muncul (misal: "Nama Ruangan") bukan "room_name" */}
+                                            {locationLabels?.[key] ||
+                                                key.replace(/_/g, ' ')}
                                         </span>
                                         <span className="text-sm font-semibold text-slate-700">
-                                            {String(value)}
+                                            {String(value || '-')}
                                         </span>
                                     </div>
                                 ),
