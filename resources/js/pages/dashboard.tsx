@@ -147,7 +147,7 @@ export default function Dashboard({
                                             })}
                                         </span>
                                     </div>
-                                    <div className="rounded bg-muted px-2 py-1 font-mono text-[10px] tracking-wider uppercase">
+                                    <div className="rounded bg-muted px-2 py-1 text-[10px] tracking-wider uppercase">
                                         {log.event}
                                     </div>
                                 </div>

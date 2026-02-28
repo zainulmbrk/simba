@@ -4,6 +4,8 @@ import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
+    SidebarGroup,
+    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
@@ -13,20 +15,16 @@ import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import {
-    ActivityIcon,
-    FileTextIcon,
     Folder,
     LayoutGrid,
     List,
     ScanQrCodeIcon,
     ShieldCheckIcon,
-    UserIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AppLogo from './app-logo';
 
 export function AppSidebar() {
-    // Ambil data auth dari props global Inertia
     const { auth } = usePage<any>().props;
     const userRole = auth.user.role;
 
@@ -45,66 +43,35 @@ export function AppSidebar() {
         localStorage.setItem('theme', theme);
     }, [theme]);
 
-    // Definisi Menu Utama dengan Logika Role
-    const mainNavItems: NavItem[] = [
+    // 1. Menu Utama (Tanpa Accordion)
+    const generalNav: NavItem[] = [
+        { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+        { title: 'Scan Item', href: '/scan', icon: ScanQrCodeIcon },
+        { title: 'Daftar Barang', href: '/items', icon: List },
+    ];
+
+    // 2. Administrasi & Master Data (Dengan Accordion)
+    const adminNav: NavItem[] = [
         {
-            title: 'Scan Item',
-            href: '/scan',
-            icon: ScanQrCodeIcon,
+            title: 'Administrasi',
+            icon: ShieldCheckIcon,
+            isActive: false, // ⬅️ UBAH INI JADI FALSE ATAU HAPUS SAJA
+            items: [
+                { title: 'Manajemen User', href: '/manage-users' },
+                { title: 'Log Aktivitas', href: '/admin/activity-logs' },
+                { title: 'Laporan BMN', href: '/reports/bmn' },
+            ],
         },
         {
-            title: 'Dashboard',
-            href: '/dashboard',
-            icon: LayoutGrid,
+            title: 'Konfigurasi Master',
+            icon: Folder,
+            items: [
+                { title: 'Kategori Barang', href: '/master/categories' },
+                { title: 'Status Barang', href: '/master/statuses' },
+                { title: 'Kondisi Barang', href: '/master/conditions' },
+                { title: 'Data Pegawai (User)', href: '/master/user' },
+            ],
         },
-        {
-            title: 'Daftar Barang',
-            href: '/items',
-            icon: List,
-        },
-        // HANYA MUNCUL JIKA ADMIN
-        ...(userRole === 'admin'
-            ? [
-                  {
-                      title: 'Manajemen User',
-                      href: '/manage-users',
-                      icon: ShieldCheckIcon,
-                  },
-                  {
-                      title: 'Log Aktivitas',
-                      href: '/admin/activity-logs',
-                      icon: ActivityIcon,
-                  },
-                  {
-                      title: 'Laporan BMN',
-                      href: '/reports/bmn',
-                      icon: FileTextIcon,
-                  },
-                  {
-                      title: 'Master Data',
-                      icon: Folder,
-                      children: [
-                          {
-                              title: 'Category',
-                              href: '/master/categories',
-                          },
-                          {
-                              title: 'Status',
-                              href: '/master/statuses',
-                          },
-                          {
-                              title: 'Condition',
-                              href: '/master/conditions',
-                          },
-                          {
-                              title: 'Master User',
-                              href: '/master/user',
-                              icon: UserIcon,
-                          },
-                      ],
-                  },
-              ]
-            : []),
     ];
 
     return (
@@ -128,7 +95,6 @@ export function AppSidebar() {
                             )
                         }
                         className="cursor-pointer rounded-md border px-2 py-1 text-sm hover:bg-muted"
-                        title="Toggle theme"
                     >
                         {theme === 'dark' ? '🌙' : '☀️'}
                     </button>
@@ -136,7 +102,19 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                {/* GRUP MENU UTAMA */}
+                <SidebarGroup>
+                    <SidebarGroupLabel>Utama</SidebarGroupLabel>
+                    <NavMain items={generalNav} />
+                </SidebarGroup>
+
+                {/* GRUP KHUSUS ADMIN DENGAN ACCORDION */}
+                {userRole === 'admin' && (
+                    <SidebarGroup>
+                        <SidebarGroupLabel>Manajemen</SidebarGroupLabel>
+                        <NavMain items={adminNav} />
+                    </SidebarGroup>
+                )}
             </SidebarContent>
 
             <SidebarFooter>

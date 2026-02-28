@@ -24,7 +24,7 @@ Route::get('/', function () {
     return Inertia::render('auth/login', [
         'canRegister' => Features::enabled(Features::registration()),
     ]);
-})->name('home');
+})->middleware('guest')->name('home');
 
 // Route Scan QR Publik (Arahkan ke sini agar user umum bisa melihat info barang)
 Route::get('/i/{id}', [ItemController::class, 'publicInfo'])->name('items.public');

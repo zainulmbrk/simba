@@ -18,6 +18,7 @@ class UserController extends Controller
 
         $query = User::query();
 
+        // Logika Pencarian
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
@@ -27,9 +28,22 @@ class UserController extends Controller
             });
         }
 
+        // AMBIL DATA DENGAN PAGINASI
+        // default 10 data per halaman, atau ambil dari request per_page
+        $perPage = $request->input('per_page', 10);
+        $users   = $query->latest()->paginate($perPage)->withQueryString();
+
         return Inertia::render('users/index', [
-            'users'   => $query->latest()->get(),
-            'filters' => $request->only(['search']),
+            // Mengirim data user saja
+            'users'      => $users->items(),
+            // Mengirim detail navigasi halaman
+            'pagination' => [
+                'links'        => $users->linkCollection()->toArray(),
+                'total'        => $users->total(),
+                'current_page' => $users->currentPage(),
+                'per_page'     => $users->perPage(),
+            ],
+            'filters'    => $request->only(['search']),
         ]);
     }
 

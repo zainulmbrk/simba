@@ -1,369 +1,312 @@
-import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
-import {
-    BriefcaseIcon,
-    PhoneIcon,
-    PlusIcon,
-    ShieldCheckIcon,
-    SquarePenIcon,
-    TrashIcon,
-    UserIcon,
-} from 'lucide-react';
-import { useState } from 'react';
+import { type BreadcrumbItem } from '@/types';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { debounce } from 'lodash';
+import { Edit, Plus, Printer, Search, Trash2, X } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
 
-export default function UserManagement() {
-    const { users, filters } = usePage<any>().props;
-    const [searchTerm, setSearchTerm] = useState(filters.search || '');
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Master Pengguna Barang', href: '/master/user' },
+];
+
+// Interface disesuaikan dengan field Master User (Pegawai)
+interface MasterUser {
+    id: number;
+    name: string;
+    nip: string; // Field NIP
+    job_title: string; // Jabatan
+    role: string; // Status/Role Pegawai
+    notes?: string;
+}
+
+interface Props {
+    users: MasterUser[];
+    pagination: {
+        links: any[];
+        total: number;
+        current_page: number;
+        per_page: number;
+    };
+    filters: {
+        search: string;
+        sort_column: string;
+        sort_direction: string;
+    };
+}
+
+export default function MasterUserIndex({
+    users,
+    pagination,
+    filters: serverFilters,
+}: Props) {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingUser, setEditingUser] = useState<any>(null);
+    const [editingUser, setEditingUser] = useState<MasterUser | null>(null);
+    const [localSearch, setLocalSearch] = useState(serverFilters?.search || '');
 
-    const {
-        data,
-        setData,
-        post,
-        put,
-        delete: destroy,
-        processing,
-        errors,
-        reset,
-    } = useForm({
-        name: '',
-        email: '',
-        nip: '', // Tambahan NIP
-        job_title: '', // Tambahan Jabatan
-        phone: '', // Tambahan Telepon
-        password: '',
-        password_confirmation: '',
-        role: 'user',
-    });
-
-    const breadcrumbs = [
-        { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Manajemen User', href: '/manage-users' },
-    ];
-
-    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value);
-        router.get(
-            '/manage-users',
-            { search: e.target.value },
-            { preserveState: true, replace: true },
-        );
-    };
-
-    const openCreateModal = () => {
-        setEditingUser(null);
-        reset();
-        setIsModalOpen(true);
-    };
-
-    const openEditModal = (user: any) => {
-        setEditingUser(user);
-        setData({
-            name: user.name,
-            email: user.email,
-            nip: user.nip || '',
-            job_title: user.job_title || '',
-            phone: user.phone || '',
-            role: user.role,
-            password: '',
-            password_confirmation: '',
+    const { data, setData, post, put, reset, processing, errors, clearErrors } =
+        useForm({
+            name: '',
+            nip: '',
+            job_title: '',
+            role: 'Pegawai', // Default status
+            notes: '',
         });
+
+    const debouncedSearch = useCallback(
+        debounce((value: string) => {
+            router.get(
+                '/master/user',
+                { ...serverFilters, search: value, page: 1 },
+                { preserveState: true, replace: true },
+            );
+        }, 500),
+        [serverFilters],
+    );
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setLocalSearch(e.target.value);
+        debouncedSearch(e.target.value);
+    };
+
+    const openModal = (user: MasterUser | null = null) => {
+        clearErrors();
+        if (user) {
+            setEditingUser(user);
+            setData({
+                name: user.name,
+                nip: user.nip || '',
+                job_title: user.job_title || '',
+                role: user.role || '',
+                notes: user.notes || '',
+            });
+        } else {
+            setEditingUser(null);
+            reset();
+        }
         setIsModalOpen(true);
     };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-
         if (editingUser) {
-            // Mengirim ke route update: /manage-users/{id}
-            put(`/manage-users/${editingUser.id}`, {
-                onSuccess: () => {
-                    setIsModalOpen(false);
-                    reset();
-                },
+            put(`/master/user/${editingUser.id}`, {
+                onSuccess: () => setIsModalOpen(false),
             });
         } else {
-            // Mengirim ke route store: /manage-users
-            post('/manage-users', {
-                onSuccess: () => {
-                    setIsModalOpen(false);
-                    reset();
-                },
-            });
-        }
-    };
-
-    const handleDelete = (id: number) => {
-        if (confirm('Apakah Anda yakin ingin menghapus akun ini?')) {
-            destroy(`/manage-users/${id}`);
+            post('/master/user', { onSuccess: () => setIsModalOpen(false) });
         }
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Manajemen User" />
-            <div className="space-y-6 p-6">
-                <div className="flex items-center justify-between">
-                    <Heading
-                        title="Manajemen User"
-                        description="Kelola akun dan detail profil pegawai"
-                    />
-                    <Button onClick={openCreateModal}>
-                        <PlusIcon className="mr-2 h-4 w-4" /> Tambah Akun
-                    </Button>
+            <Head title="Master Pengguna Barang" />
+            <div className="p-6">
+                <div className="mb-6 flex flex-col gap-1">
+                    <h1 className="text-2xl font-bold text-gray-900">
+                        Master Pengguna Barang
+                    </h1>
+                    <p className="text-sm text-gray-500">
+                        Kelola data pegawai yang bertanggung jawab atas
+                        aset/barang.
+                    </p>
                 </div>
 
-                <div className="flex justify-end">
-                    <input
-                        type="text"
-                        placeholder="Cari nama, NIP, atau jabatan..."
-                        value={searchTerm}
-                        onChange={handleSearch}
-                        className="w-full max-w-sm rounded border px-3 py-2 text-sm shadow-sm"
-                    />
+                <div className="mb-4 flex items-center justify-between">
+                    <div className="relative w-full max-w-sm">
+                        <Search
+                            className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
+                            size={16}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Cari nama atau NIP..."
+                            value={localSearch}
+                            onChange={handleSearchChange}
+                            className="w-full rounded-lg border border-gray-200 py-2 pr-4 pl-10 text-sm outline-none focus:border-black"
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="border-blue-200 text-blue-600"
+                        >
+                            <Printer size={16} />
+                        </Button>
+                        <Button
+                            onClick={() => openModal()}
+                            className="bg-black text-white hover:bg-gray-800"
+                        >
+                            <Plus size={16} className="mr-2" /> Tambah Pengguna
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+                <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
                     <table className="w-full text-left text-sm">
-                        <thead className="border-b bg-gray-50 font-medium text-gray-600">
+                        <thead className="border-b border-gray-100 bg-gray-50 font-semibold text-gray-600">
                             <tr>
-                                <th className="px-4 py-3 text-center">No</th>
-                                <th className="px-4 py-3">Nama / NIP</th>
-                                <th className="px-4 py-3">Jabatan</th>
-                                <th className="px-4 py-3">Kontak</th>
-                                <th className="px-4 py-3">Role</th>
-                                <th className="px-4 py-3 text-right">Aksi</th>
+                                <th className="px-6 py-4">Nama</th>
+                                <th className="px-6 py-4">NIP / ID</th>
+                                <th className="px-6 py-4">Jabatan</th>
+                                <th className="px-6 py-4 text-center">
+                                    Status
+                                </th>
+                                <th className="px-6 py-4 text-right">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y">
-                            {users.map((user: any, index: number) => (
+                        <tbody className="divide-y divide-gray-50">
+                            {users.map((user) => (
                                 <tr
                                     key={user.id}
-                                    className="transition-colors hover:bg-gray-50"
+                                    className="transition hover:bg-gray-50/50"
                                 >
-                                    <td className="px-4 py-3 text-center text-gray-400">
-                                        {index + 1}
+                                    <td className="px-6 py-4 font-medium text-gray-900">
+                                        {user.name}
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <div className="font-bold text-gray-900">
-                                            {user.name}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                            NIP. {user.nip || '-'}
-                                        </div>
+                                    <td className="px-6 py-4 text-gray-500">
+                                        {user.nip || '-'}
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center">
-                                            <BriefcaseIcon className="mr-2 h-3 w-3 text-gray-400" />
-                                            {user.job_title || '-'}
-                                        </div>
+                                    <td className="px-6 py-4 text-gray-600">
+                                        {user.job_title || '-'}
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <div className="text-gray-600">
-                                            {user.email}
-                                        </div>
-                                        <div className="mt-0.5 flex items-center text-xs text-gray-400">
-                                            <PhoneIcon className="mr-1 h-3 w-3" />{' '}
-                                            {user.phone || '-'}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <span
-                                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                                user.role === 'admin'
-                                                    ? 'bg-blue-100 text-blue-800'
-                                                    : 'bg-gray-100 text-gray-800'
-                                            }`}
-                                        >
-                                            {user.role === 'admin' ? (
-                                                <ShieldCheckIcon className="mr-1 h-3 w-3" />
-                                            ) : (
-                                                <UserIcon className="mr-1 h-3 w-3" />
-                                            )}
-                                            {user.role.toUpperCase()}
+                                    <td className="px-6 py-4 text-center">
+                                        <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-blue-600 uppercase">
+                                            {user.role || '-'}
                                         </span>
                                     </td>
-                                    <td className="space-x-1 px-4 py-3 text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => openEditModal(user)}
-                                        >
-                                            <SquarePenIcon className="h-4 w-4 text-green-600" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() =>
-                                                handleDelete(user.id)
-                                            }
-                                        >
-                                            <TrashIcon className="h-4 w-4 text-red-600" />
-                                        </Button>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <button
+                                                onClick={() => openModal(user)}
+                                                className="rounded p-1 text-green-600 hover:bg-green-50"
+                                            >
+                                                <Edit size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() =>
+                                                    confirm('Hapus?') &&
+                                                    router.delete(
+                                                        `/master/user/${user.id}`,
+                                                    )
+                                                }
+                                                className="rounded p-1 text-red-600 hover:bg-red-50"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+
+                    {/* Footer Pagination sesuai Gambar SIMBA V.1 */}
+                    <div className="flex items-center justify-between border-t border-gray-50 bg-white px-6 py-4">
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <span>
+                                Menampilkan <b>{users.length}</b> dari{' '}
+                                <b>{pagination.total}</b> data
+                            </span>
+                            <select
+                                value={pagination.per_page}
+                                onChange={(e) =>
+                                    router.get('/master/user', {
+                                        ...serverFilters,
+                                        per_page: e.target.value,
+                                    })
+                                }
+                                className="cursor-pointer border-none bg-transparent font-bold text-gray-900 focus:ring-0"
+                            >
+                                <option value="10">10 Baris</option>
+                                <option value="25">25 Baris</option>
+                            </select>
+                        </div>
+                        <div className="flex gap-1">
+                            {pagination.links.map((link, i) => (
+                                <Link
+                                    key={i}
+                                    href={link.url || '#'}
+                                    className={`rounded-md px-3 py-1 text-xs ${link.active ? 'bg-black text-white' : 'text-gray-400 hover:bg-gray-100'} ${!link.url ? 'pointer-events-none opacity-30' : ''}`}
+                                    dangerouslySetInnerHTML={{
+                                        __html: link.label,
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Modal Form */}
+            {/* Modal Master User */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
-                        <h2 className="mb-6 border-b pb-3 text-xl font-bold text-gray-800">
-                            {editingUser
-                                ? 'Edit Profil User'
-                                : 'Tambah Akun Baru'}
-                        </h2>
-                        <form onSubmit={submit} className="space-y-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-lg animate-in overflow-hidden rounded-xl bg-white shadow-xl zoom-in-95">
+                        <div className="flex items-center justify-between border-b bg-gray-50/50 px-6 py-4">
+                            <h2 className="font-bold text-gray-800">
+                                {editingUser
+                                    ? 'Edit Data Pegawai'
+                                    : 'Tambah Pegawai Baru'}
+                            </h2>
+                            <button onClick={() => setIsModalOpen(false)}>
+                                <X size={20} className="text-gray-400" />
+                            </button>
+                        </div>
+                        <form onSubmit={submit} className="space-y-4 p-6">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">
+                                    Nama Lengkap
+                                </label>
+                                <input
+                                    className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
+                                    value={data.name}
+                                    onChange={(e) =>
+                                        setData('name', e.target.value)
+                                    }
+                                    required
+                                />
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
+                                <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase">
-                                        Nama Lengkap
+                                        NIP / ID Pegawai
                                     </label>
                                     <input
-                                        className="w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={data.name}
-                                        onChange={(e) =>
-                                            setData('name', e.target.value)
-                                        }
-                                    />
-                                    {errors.name && (
-                                        <p className="text-[10px] text-red-500 italic">
-                                            {errors.name}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">
-                                        NIP
-                                    </label>
-                                    <input
-                                        className="w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
                                         value={data.nip}
                                         onChange={(e) =>
                                             setData('nip', e.target.value)
                                         }
                                     />
                                 </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
+                                <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase">
-                                        Jabatan
+                                        Status / Role
                                     </label>
                                     <input
-                                        className="w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={data.job_title}
-                                        onChange={(e) =>
-                                            setData('job_title', e.target.value)
-                                        }
-                                        placeholder="Contoh: Sekretaris"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">
-                                        Nomor Telepon
-                                    </label>
-                                    <input
-                                        className="w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={data.phone}
-                                        onChange={(e) =>
-                                            setData('phone', e.target.value)
-                                        }
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">
-                                        Email Login
-                                    </label>
-                                    <input
-                                        className="w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                        type="email"
-                                        value={data.email}
-                                        onChange={(e) =>
-                                            setData('email', e.target.value)
-                                        }
-                                    />
-                                    {errors.email && (
-                                        <p className="text-[10px] text-red-500 italic">
-                                            {errors.email}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">
-                                        Hak Akses (Role)
-                                    </label>
-                                    <select
-                                        className="w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
                                         value={data.role}
                                         onChange={(e) =>
                                             setData('role', e.target.value)
                                         }
-                                    >
-                                        <option value="user">User Biasa</option>
-                                        <option value="admin">
-                                            Administrator
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="mt-2 grid grid-cols-2 gap-4 border-t pt-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">
-                                        {editingUser
-                                            ? 'Ganti Password'
-                                            : 'Password'}
-                                    </label>
-                                    <input
-                                        className="w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                        type="password"
-                                        value={data.password}
-                                        onChange={(e) =>
-                                            setData('password', e.target.value)
-                                        }
-                                        placeholder={
-                                            editingUser
-                                                ? 'Kosongkan jika tak ganti'
-                                                : ''
-                                        }
-                                    />
-                                    {errors.password && (
-                                        <p className="text-[10px] text-red-500 italic">
-                                            {errors.password}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">
-                                        Konfirmasi Password
-                                    </label>
-                                    <input
-                                        className="w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                        type="password"
-                                        value={data.password_confirmation}
-                                        onChange={(e) =>
-                                            setData(
-                                                'password_confirmation',
-                                                e.target.value,
-                                            )
-                                        }
+                                        placeholder="Contoh: PNS / Honorer"
                                     />
                                 </div>
                             </div>
-
-                            <div className="flex justify-end gap-2 pt-6">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">
+                                    Jabatan
+                                </label>
+                                <input
+                                    className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
+                                    value={data.job_title}
+                                    onChange={(e) =>
+                                        setData('job_title', e.target.value)
+                                    }
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 border-t pt-4">
                                 <Button
                                     variant="outline"
                                     type="button"
@@ -374,11 +317,11 @@ export default function UserManagement() {
                                 <Button
                                     type="submit"
                                     disabled={processing}
-                                    className="bg-blue-600 hover:bg-blue-700"
+                                    className="bg-black text-white"
                                 >
                                     {editingUser
                                         ? 'Simpan Perubahan'
-                                        : 'Daftarkan Akun'}
+                                        : 'Tambah Pegawai'}
                                 </Button>
                             </div>
                         </form>

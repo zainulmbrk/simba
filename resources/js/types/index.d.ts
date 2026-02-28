@@ -21,6 +21,11 @@ export interface NavItem {
     icon?: LucideIcon | null;
     isActive?: boolean;
     children?: NavItem[]; // ⬅️ TAMBAH INI
+    items?: {
+        title: string;
+        href: string;
+        icon?: LucideIcon;
+    }[];
 }
 
 export interface SharedData {
@@ -43,25 +48,6 @@ export interface User {
     [key: string]: unknown;
 }
 
-// BEFOR ADD USER TABLE
-// export interface Item {
-//     id: number;
-//     name: string;
-//     code: string;
-//     category: string;       // category name
-//     category_id: number;    // category id
-//     status: string;         // status name
-//     status_id: number;      // status id
-//     condition: string;      // condition name
-//     condition_id: number;   // condition id
-//     location: string;
-//     user: string;
-//     responsible: string;
-//     files?: string;
-//     attributes?: Record<string, string>;
-
-// }
-
 //AFTER ADD USER TABLE
 export interface Item {
     id: number;
@@ -82,20 +68,6 @@ export interface Item {
     attributes?: Record<string, string>;
     location_values: Record<string, any> | null;
 }
-
-//BEFORE ADD USER TABLES
-// export type ItemFormValues = {
-//   name: string;
-//   code: string;
-//   category: string;       
-//   status: string;         
-//   condition: string;      
-//   location: string;
-//   user: string;
-//   responsible: string;
-//   photo?: FileList;
-//   attributes?: Record<string, string>;
-// };
 
 //AFTER ADD USER TABLE
 export type ItemFormValues = {

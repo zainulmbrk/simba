@@ -185,16 +185,15 @@ export default function ItemsList() {
                 />
                 <div className="space-y-4">
                     {/* HEADER */}
-                    <div className="flex items-center justify-between">
-                        <div className="flex gap-4">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                        {/* BAGIAN SELECT FILTER */}
+                        <div className="grid grid-cols-2 gap-2 md:flex md:flex-row md:gap-4">
                             <select
                                 value={filters.category}
                                 onChange={(e) =>
-                                    applyFilters({
-                                        category: e.target.value,
-                                    })
+                                    applyFilters({ category: e.target.value })
                                 }
-                                className="rounded border px-2 py-2 text-sm"
+                                className="w-full rounded border px-2 py-2 text-sm md:w-auto"
                             >
                                 <option value="">Semua Kategori</option>
                                 {props.categories.map((c) => (
@@ -209,7 +208,7 @@ export default function ItemsList() {
                                 onChange={(e) =>
                                     applyFilters({ status: e.target.value })
                                 }
-                                className="rounded border px-2 py-2 text-sm"
+                                className="w-full rounded border px-2 py-2 text-sm md:w-auto"
                             >
                                 <option value="">Semua Status</option>
                                 {props.statuses.map((s) => (
@@ -222,11 +221,9 @@ export default function ItemsList() {
                             <select
                                 value={filters.condition}
                                 onChange={(e) =>
-                                    applyFilters({
-                                        condition: e.target.value,
-                                    })
+                                    applyFilters({ condition: e.target.value })
                                 }
-                                className="rounded border px-2 py-2 text-sm"
+                                className="col-span-2 rounded border px-2 py-2 text-sm md:col-span-1 md:w-auto"
                             >
                                 <option value="">Semua Kondisi</option>
                                 {props.conditions.map((c) => (
@@ -236,56 +233,67 @@ export default function ItemsList() {
                                 ))}
                             </select>
                         </div>
-                        <div className="flex gap-4">
-                            <input
-                                type="text"
-                                placeholder="Cari nama / kode barang..."
-                                value={filters.search}
-                                onChange={(e) =>
-                                    applyFilters({ search: e.target.value })
-                                }
-                                className="w-full max-w-sm rounded border px-3 py-2 text-sm"
-                            />
 
-                            {/* TOMBOL CETAK MASSAL BERDASARKAN FILTER */}
-                            {isAdmin && (
+                        {/* BAGIAN SEARCH DAN TOMBOL AKSI */}
+                        <div className="flex items-center justify-between gap-2">
+                            {/* Input Search - Menggunakan flex-1 agar mengambil sisa ruang yang ada */}
+                            <div className="flex-1">
+                                <input
+                                    type="text"
+                                    placeholder="Cari..."
+                                    value={filters.search}
+                                    onChange={(e) =>
+                                        applyFilters({ search: e.target.value })
+                                    }
+                                    className="w-full rounded border px-3 py-2 text-sm"
+                                />
+                            </div>
+
+                            {/* Grup Tombol - Tetap di kanan */}
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                {isAdmin && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex items-center gap-1 border-blue-500 px-2 text-blue-600 hover:bg-blue-50 sm:px-3"
+                                        onClick={() => {
+                                            const queryParams =
+                                                new URLSearchParams({
+                                                    search: filters.search,
+                                                    category: filters.category,
+                                                    status: filters.status,
+                                                    condition:
+                                                        filters.condition,
+                                                }).toString();
+                                            window.open(
+                                                `/items/labels/print-all?${queryParams}`,
+                                                '_blank',
+                                            );
+                                        }}
+                                    >
+                                        <PrinterIcon className="h-4 w-4" />
+                                        <span className="xs:inline hidden text-xs sm:text-sm">
+                                            Cetak
+                                        </span>
+                                    </Button>
+                                )}
+
                                 <Button
-                                    variant="outline"
-                                    className="flex items-center gap-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+                                    size="sm"
+                                    className="flex items-center gap-1 px-2 sm:px-3"
                                     onClick={() => {
-                                        // Kita bungkus semua filter aktif ke dalam URLSearchParams
-                                        const queryParams = new URLSearchParams(
-                                            {
-                                                search: filters.search,
-                                                category: filters.category,
-                                                status: filters.status,
-                                                condition: filters.condition,
-                                            },
-                                        ).toString();
-
-                                        // Membuka tab baru untuk proses download PDF
-                                        window.open(
-                                            `/items/labels/print-all?${queryParams}`,
-                                            '_blank',
-                                        );
+                                        setEditingItem(null);
+                                        setAttributes({});
+                                        setLocationValues({});
+                                        setOpen(true);
                                     }}
                                 >
-                                    <PrinterIcon className="h-4 w-4" />
-                                    Cetak Label
+                                    <PlusIcon className="h-4 w-4" />
+                                    <span className="xs:inline hidden text-xs sm:text-sm">
+                                        Tambah
+                                    </span>
                                 </Button>
-                            )}
-
-                            <Button
-                                onClick={() => {
-                                    setEditingItem(null);
-                                    setAttributes({});
-                                    setLocationValues({});
-                                    setOpen(true);
-                                }}
-                            >
-                                <PlusIcon className="h-4 w-4" />
-                                Tambah
-                            </Button>
+                            </div>
                         </div>
                     </div>
 
@@ -431,41 +439,51 @@ export default function ItemsList() {
                         </table>
                     </div>
 
-                    {/* PAGINATION CONTROL */}
-                    <div className="flex items-center justify-between px-2 py-4">
-                        <div className="flex items-center gap-4">
-                            <span className="text-sm text-muted-foreground">
-                                Menampilkan {items.length} dari{' '}
-                                {props.pagination.total} data
+                    {/* PAGINATION CONTROL - Responsif */}
+                    <div className="flex flex-col items-center justify-between gap-4 px-2 py-2 sm:flex-row">
+                        {/* Info Data & Selector Baris */}
+                        <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+                            <span className="text-xs text-muted-foreground sm:text-sm">
+                                Menampilkan{' '}
+                                <span className="font-medium text-foreground">
+                                    {items.length}
+                                </span>{' '}
+                                dari{' '}
+                                <span className="font-medium text-foreground">
+                                    {props.pagination.total}
+                                </span>{' '}
+                                data
                             </span>
 
-                            <span className="text-sm text-muted-foreground">
-                                Tampilkan:
-                            </span>
-
-                            <select
-                                value={props.pagination.per_page}
-                                onChange={handlePerPageChange}
-                                className="rounded border p-1 text-sm"
-                            >
-                                {[5, 10, 20, 50].map((val) => (
-                                    <option key={val} value={val}>
-                                        {val}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="flex items-center gap-2 border-l pl-3">
+                                <span className="text-xs text-muted-foreground sm:text-sm">
+                                    Tampilkan:
+                                </span>
+                                <select
+                                    value={props.pagination.per_page}
+                                    onChange={handlePerPageChange}
+                                    className="rounded border bg-background p-1 text-xs sm:text-sm"
+                                >
+                                    {[5, 10, 20, 50].map((val) => (
+                                        <option key={val} value={val}>
+                                            {val}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
-                        <div className="flex gap-1">
+                        {/* Tombol Angka Halaman - Menggunakan flex-wrap agar tidak jebol ke kanan */}
+                        <div className="flex flex-wrap justify-center gap-1">
                             {props.pagination.links.map((link, index) => (
                                 <Link
                                     key={index}
                                     href={link.url || '#'}
-                                    className={`rounded border px-3 py-1 text-sm ${
+                                    className={`flex h-8 min-w-[32px] items-center justify-center rounded border px-2 text-xs transition-colors sm:h-9 sm:min-w-[36px] sm:px-3 sm:text-sm ${
                                         link.active
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-background hover:bg-accent'
-                                    } ${!link.url ? 'pointer-events-none opacity-50' : ''}`}
+                                            ? 'border-primary bg-primary font-semibold text-primary-foreground'
+                                            : 'bg-background text-foreground hover:bg-accent'
+                                    } ${!link.url ? 'pointer-events-none bg-muted opacity-40' : ''}`}
                                     dangerouslySetInnerHTML={{
                                         __html: link.label,
                                     }}
