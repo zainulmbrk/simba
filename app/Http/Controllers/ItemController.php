@@ -75,6 +75,7 @@ class ItemController extends Controller
                     'user_id'         => $item->user_id,
                     'responsible'     => $item->responsible,
                     'files'           => $item->files,
+                    'file_bast'       => $item->file_bast ? Storage::url($item->file_bast) : null,
                     'attributes'      => is_array($item->attributes) ? $item->attributes : [],
                 ];
             }),
@@ -134,6 +135,7 @@ class ItemController extends Controller
                 'user_id'         => $item->user_id, // Tambahkan ini
                 'responsible'     => $item->responsible,
                 'files'           => $item->files,
+                'file_bast'       => $item->file_bast,
                 'attributes'      => is_array($item->attributes) ? $item->attributes : [],
                 'location_values' => is_array($item->location_values) ? $item->location_values : [],
             ],
@@ -220,6 +222,7 @@ class ItemController extends Controller
             'condition'   => 'required|integer',
             'responsible' => 'required|string',
             'photo'       => 'nullable|file|image',
+            'file_bast'   => 'nullable|file|mimes:pdf|max:10240',
         ];
 
         if ($currentUser && $currentUser->role === 'admin') {
@@ -257,6 +260,26 @@ class ItemController extends Controller
                 Storage::disk('public')->delete($item->files);
             }
             $item->files = $request->file('photo')->store('items', 'public');
+        }
+
+        if ($request->hasFile('file_bast')) {
+            // Hapus file lama jika ada
+            if ($item->file_bast) {
+                Storage::disk('public')->delete($item->file_bast);
+            }
+
+            $file = $request->file('file_bast');
+
+            // Ambil nama asli file
+            $originalName = $file->getClientOriginalName();
+
+            // Bersihkan nama file dari karakter aneh/spasi agar tidak error di URL
+            $safeName = time() . '_' . str_replace(' ', '_', $originalName);
+
+            // Simpan dengan nama asli ke folder 'documents/bast'
+            $path = $file->storeAs('documents/bast', $safeName, 'public');
+
+            $item->file_bast = $path;
         }
 
         $item->save();

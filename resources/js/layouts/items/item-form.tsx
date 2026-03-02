@@ -62,7 +62,7 @@ export function ItemForm({
                 setLocationValues((initialValues as any).location_values);
             }
         }
-    }, [initialValues.id]); // Trigger hanya jika ID barang berubah (saat ganti barang yang diedit)
+    }, [(initialValues as any).id]); // Trigger hanya jika ID barang berubah (saat ganti barang yang diedit)
 
     const selectedCategoryId = watch('category');
     const selectedCategory = categories.find(
@@ -269,6 +269,31 @@ export function ItemForm({
                     className="w-full border px-3 py-2 text-sm"
                     {...register('photo')}
                 />
+            </div>
+
+            {/* Tambahkan Input BAST di sini */}
+            <div>
+                <label className="flex justify-between text-xs font-medium text-muted-foreground">
+                    <span>File BAST (Berita Acara)</span>
+                    <span className="text-[10px] font-normal text-orange-500 italic">
+                        * Opsional (Khusus PDF)
+                    </span>
+                </label>
+                <input
+                    type="file"
+                    accept="application/pdf"
+                    className="w-full border bg-white px-3 py-2 text-sm"
+                    onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                            setValue('file_bast', e.target.files[0]); // Isi manual ke form
+                        }
+                    }}
+                />
+                {errors.file_bast && (
+                    <p className="mt-1 text-[10px] text-red-500">
+                        Format harus PDF dan max 10MB
+                    </p>
+                )}
             </div>
 
             {/* Detil Lokasi Dinamis (Nama Ruangan, Kode Ruangan, dsb) */}

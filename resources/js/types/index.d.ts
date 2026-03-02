@@ -65,6 +65,7 @@ export interface Item {
     user?: string;          // ⬅️ Opsional: Tambahkan ini untuk menyimpan Nama User saja
     responsible: string;
     files?: string;
+    file_bast?: string;
     attributes?: Record<string, string>;
     location_values: Record<string, any> | null;
 }
@@ -81,7 +82,9 @@ export type ItemFormValues = {
   user_id: string;        // ⬅️ GANTI 'user' MENJADI 'user_id'
   responsible: string;
   photo?: FileList;
+  file_bast?: File | null;
   attributes?: Record<string, string>;
+  location_values?: Record<string, any>;
 };
 
 export type ItemAttribute =

@@ -24,6 +24,7 @@ class Item extends Model
         'user_id',
         'responsible',
         'files',
+        'file_bast',
         'attributes',
     ];
 

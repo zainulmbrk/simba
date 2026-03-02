@@ -7,7 +7,12 @@ import ItemsLayout from '@/layouts/items/layout';
 import type { Item } from '@/types';
 import { type BreadcrumbItem, ItemFormValues } from '@/types';
 import { router, usePage } from '@inertiajs/react';
-import { ChevronDownIcon, SquarePenIcon } from 'lucide-react';
+import {
+    ChevronDownIcon,
+    DownloadIcon,
+    FileTextIcon,
+    SquarePenIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 
 export default function Item() {
@@ -225,6 +230,53 @@ export default function Item() {
                                         disabled
                                         className="w-full rounded-md bg-secondary p-2 text-sm text-muted-foreground"
                                     />
+                                </div>
+                                {/* --- BAST --- */}
+                                <div className="mt-2 md:col-span-2">
+                                    <label className="mb-1 block text-sm font-medium text-primary">
+                                        Dokumen BAST
+                                    </label>
+                                    {item.file_bast ? (
+                                        <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3">
+                                            <FileTextIcon className="h-8 w-8 text-red-500" />
+                                            <div className="flex-1 overflow-hidden">
+                                                <p
+                                                    className="truncate text-sm font-medium"
+                                                    title={item.file_bast
+                                                        .split('/')
+                                                        .pop()}
+                                                >
+                                                    {/* Mengambil nama file saja dari path */}
+                                                    {item.file_bast
+                                                        .split('/')
+                                                        .pop()}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground uppercase">
+                                                    Format: PDF
+                                                </p>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    window.open(
+                                                        `/storage/${item.file_bast}`,
+                                                        '_blank',
+                                                    )
+                                                }
+                                            >
+                                                <DownloadIcon className="mr-2 h-4 w-4" />
+                                                Buka / Download
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-lg border border-dashed bg-secondary/30 p-3">
+                                            <p className="text-center text-sm text-muted-foreground italic">
+                                                Belum ada dokumen BAST yang
+                                                diunggah.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
