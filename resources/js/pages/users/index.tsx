@@ -10,14 +10,14 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Master Pengguna Barang', href: '/master/user' },
 ];
 
-// Interface disesuaikan dengan field Master User (Pegawai)
 interface MasterUser {
     id: number;
     name: string;
-    nip: string; // Field NIP
-    job_title: string; // Jabatan
-    role: string; // Status/Role Pegawai
-    notes?: string;
+    email: string;
+    nip: string;
+    job_title: string;
+    phone: string;
+    role: string;
 }
 
 interface Props {
@@ -30,8 +30,6 @@ interface Props {
     };
     filters: {
         search: string;
-        sort_column: string;
-        sort_direction: string;
     };
 }
 
@@ -47,21 +45,24 @@ export default function MasterUserIndex({
     const { data, setData, post, put, reset, processing, errors, clearErrors } =
         useForm({
             name: '',
+            email: '',
             nip: '',
             job_title: '',
-            role: 'Pegawai', // Default status
-            notes: '',
+            phone: '',
+            role: 'user',
+            password: '',
+            password_confirmation: '',
         });
 
     const debouncedSearch = useCallback(
         debounce((value: string) => {
             router.get(
                 '/master/user',
-                { ...serverFilters, search: value, page: 1 },
+                { search: value, page: 1 },
                 { preserveState: true, replace: true },
             );
         }, 500),
-        [serverFilters],
+        [],
     );
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,10 +76,13 @@ export default function MasterUserIndex({
             setEditingUser(user);
             setData({
                 name: user.name,
+                email: user.email,
                 nip: user.nip || '',
                 job_title: user.job_title || '',
-                role: user.role || '',
-                notes: user.notes || '',
+                phone: user.phone || '',
+                role: user.role || 'user',
+                password: '',
+                password_confirmation: '',
             });
         } else {
             setEditingUser(null);
@@ -94,7 +98,12 @@ export default function MasterUserIndex({
                 onSuccess: () => setIsModalOpen(false),
             });
         } else {
-            post('/master/user', { onSuccess: () => setIsModalOpen(false) });
+            post('/master/user', {
+                onSuccess: () => {
+                    setIsModalOpen(false);
+                    reset();
+                },
+            });
         }
     };
 
@@ -149,7 +158,7 @@ export default function MasterUserIndex({
                             <tr>
                                 <th className="px-6 py-4">Nama</th>
                                 <th className="px-6 py-4">NIP / ID</th>
-                                <th className="px-6 py-4">Jabatan</th>
+                                <th className="px-6 py-4">Email</th>
                                 <th className="px-6 py-4 text-center">
                                     Status
                                 </th>
@@ -169,11 +178,11 @@ export default function MasterUserIndex({
                                         {user.nip || '-'}
                                     </td>
                                     <td className="px-6 py-4 text-gray-600">
-                                        {user.job_title || '-'}
+                                        {user.email}
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-blue-600 uppercase">
-                                            {user.role || '-'}
+                                            {user.role}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
@@ -186,7 +195,9 @@ export default function MasterUserIndex({
                                             </button>
                                             <button
                                                 onClick={() =>
-                                                    confirm('Hapus?') &&
+                                                    confirm(
+                                                        'Hapus user ini?',
+                                                    ) &&
                                                     router.delete(
                                                         `/master/user/${user.id}`,
                                                     )
@@ -202,26 +213,10 @@ export default function MasterUserIndex({
                         </tbody>
                     </table>
 
-                    {/* Footer Pagination sesuai Gambar SIMBA V.1 */}
                     <div className="flex items-center justify-between border-t border-gray-50 bg-white px-6 py-4">
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span>
-                                Menampilkan <b>{users.length}</b> dari{' '}
-                                <b>{pagination.total}</b> data
-                            </span>
-                            <select
-                                value={pagination.per_page}
-                                onChange={(e) =>
-                                    router.get('/master/user', {
-                                        ...serverFilters,
-                                        per_page: e.target.value,
-                                    })
-                                }
-                                className="cursor-pointer border-none bg-transparent font-bold text-gray-900 focus:ring-0"
-                            >
-                                <option value="10">10 Baris</option>
-                                <option value="25">25 Baris</option>
-                            </select>
+                        <div className="text-xs text-gray-500">
+                            Menampilkan <b>{users.length}</b> dari{' '}
+                            <b>{pagination.total}</b> data
                         </div>
                         <div className="flex gap-1">
                             {pagination.links.map((link, i) => (
@@ -239,7 +234,6 @@ export default function MasterUserIndex({
                 </div>
             </div>
 
-            {/* Modal Master User */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-lg animate-in overflow-hidden rounded-xl bg-white shadow-xl zoom-in-95">
@@ -253,59 +247,166 @@ export default function MasterUserIndex({
                                 <X size={20} className="text-gray-400" />
                             </button>
                         </div>
-                        <form onSubmit={submit} className="space-y-4 p-6">
-                            <div>
-                                <label className="text-xs font-bold text-gray-500 uppercase">
-                                    Nama Lengkap
-                                </label>
-                                <input
-                                    className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
-                                    value={data.name}
-                                    onChange={(e) =>
-                                        setData('name', e.target.value)
-                                    }
-                                    required
-                                />
-                            </div>
+                        <form
+                            onSubmit={submit}
+                            className="max-h-[80vh] space-y-4 overflow-y-auto p-6 text-left"
+                        >
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
+                                <div className="col-span-2">
                                     <label className="text-xs font-bold text-gray-500 uppercase">
-                                        NIP / ID Pegawai
+                                        Nama Lengkap
                                     </label>
                                     <input
-                                        className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
+                                        className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 ${errors.name ? 'border-red-500 focus:ring-red-500' : 'focus:ring-black'}`}
+                                        value={data.name}
+                                        onChange={(e) =>
+                                            setData('name', e.target.value)
+                                        }
+                                        required
+                                    />
+                                    {errors.name && (
+                                        <p className="mt-1 text-[10px] font-medium text-red-500">
+                                            {errors.name}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="col-span-2">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 ${errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-black'}`}
+                                        value={data.email}
+                                        onChange={(e) =>
+                                            setData('email', e.target.value)
+                                        }
+                                        required
+                                    />
+                                    {errors.email && (
+                                        <p className="mt-1 text-[10px] font-medium text-red-500">
+                                            {errors.email}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase">
+                                        NIP / ID
+                                    </label>
+                                    <input
+                                        className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 ${errors.nip ? 'border-red-500 focus:ring-red-500' : 'focus:ring-black'}`}
                                         value={data.nip}
                                         onChange={(e) =>
                                             setData('nip', e.target.value)
                                         }
+                                        required
                                     />
+                                    {errors.nip && (
+                                        <p className="mt-1 text-[10px] font-medium text-red-500">
+                                            {errors.nip}
+                                        </p>
+                                    )}
                                 </div>
+
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase">
-                                        Status / Role
+                                        Role
                                     </label>
-                                    <input
+                                    <select
                                         className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
                                         value={data.role}
                                         onChange={(e) =>
                                             setData('role', e.target.value)
                                         }
-                                        placeholder="Contoh: PNS / Honorer"
+                                    >
+                                        <option value="user">
+                                            User / Pegawai
+                                        </option>
+                                        <option value="admin">
+                                            Administrator
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase">
+                                        Jabatan
+                                    </label>
+                                    <input
+                                        className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
+                                        value={data.job_title}
+                                        onChange={(e) =>
+                                            setData('job_title', e.target.value)
+                                        }
                                     />
                                 </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase">
+                                        No. Telepon
+                                    </label>
+                                    <input
+                                        className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
+                                        value={data.phone}
+                                        onChange={(e) =>
+                                            setData('phone', e.target.value)
+                                        }
+                                    />
+                                    {errors.phone && (
+                                        <p className="mt-1 text-[10px] font-medium text-red-500">
+                                            {errors.phone}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                            <div>
-                                <label className="text-xs font-bold text-gray-500 uppercase">
-                                    Jabatan
-                                </label>
-                                <input
-                                    className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
-                                    value={data.job_title}
-                                    onChange={(e) =>
-                                        setData('job_title', e.target.value)
-                                    }
-                                />
-                            </div>
+
+                            {!editingUser && (
+                                <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase">
+                                            Password
+                                        </label>
+                                        <input
+                                            type="password"
+                                            placeholder="Min 8 Karakter"
+                                            className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 ${errors.password ? 'border-red-500 focus:ring-red-500' : 'focus:ring-black'}`}
+                                            value={data.password}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'password',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase">
+                                            Konfirmasi
+                                        </label>
+                                        <input
+                                            type="password"
+                                            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black"
+                                            value={data.password_confirmation}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'password_confirmation',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            required
+                                        />
+                                    </div>
+                                    {errors.password && (
+                                        <p className="col-span-2 mt-1 text-[10px] font-medium text-red-500">
+                                            {errors.password}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="flex justify-end gap-2 border-t pt-4">
                                 <Button
                                     variant="outline"

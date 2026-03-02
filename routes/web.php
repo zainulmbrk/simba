@@ -6,7 +6,7 @@ use App\Http\Controllers\MasterCategoryAttributeController;
 use App\Http\Controllers\MasterCategoryController;
 use App\Http\Controllers\MasterConditionController;
 use App\Http\Controllers\MasterStatusController;
-use App\Http\Controllers\MasterUserController;
+// MasterUserController dihapus dari sini
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Artisan;
@@ -26,19 +26,19 @@ Route::get('/', function () {
     ]);
 })->middleware('guest')->name('home');
 
-// Route Scan QR Publik (Arahkan ke sini agar user umum bisa melihat info barang)
 Route::get('/i/{id}', [ItemController::class, 'publicInfo'])->name('items.public');
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated Routes (Protected by Auth & Verified Middleware)
+| Authenticated Routes
 |--------------------------------------------------------------------------
 */
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
+    // Route untuk Manajemen User (Jika Anda ingin URL /manage-users juga aktif)
     Route::resource('manage-users', UserController::class)->parameters([
-        'manage-users' => 'user', // Memaksa parameter URL menjadi {user} agar terbaca di Controller
+        'manage-users' => 'user',
     ])->names([
         'index' => 'users.index',
     ]);
@@ -47,14 +47,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('scan/index');
     })->name('scan');
 
-    // --- Dashboard ---
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // GET NUP
-    // Route untuk mengambil NUP selanjutnya berdasarkan kode barang
-    Route::get('/items/next-nup/{code}', [ItemController::class, 'getNextNup'])->middleware('auth');
+    Route::get('/items/next-nup/{code}', [ItemController::class, 'getNextNup']);
 
-    // Khusus Admin: Log Aktivitas
     Route::get('/admin/activity-logs', [App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('admin.logs.index');
 
     /*
@@ -70,8 +66,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/', [ItemController::class, 'store'])->name('store');
         Route::put('/{item}', [ItemController::class, 'update'])->name('update');
         Route::delete('/{item}', [ItemController::class, 'destroy'])->name('destroy');
-
-        // Export Data Barang (Excel/PDF)
         Route::get('/export/data', [ItemController::class, 'export'])->name('export');
     });
 
@@ -81,9 +75,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('reports/bmn')->name('reports.')->group(function () {
-        // Halaman filter laporan
         Route::get('/', [ReportController::class, 'index'])->name('index');
-        // Proses download file laporan
         Route::get('/download', [ReportController::class, 'download'])->name('download');
     });
 
@@ -93,8 +85,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    // --- Master User ---
-    Route::resource('master/user', MasterUserController::class);
+    // --- Master User (SOLUSI: Diarahkan ke UserController) ---
+    Route::resource('master/user', UserController::class);
 
     // --- Master Kategori ---
     Route::prefix('master/categories')->name('master.categories.')->group(function () {
@@ -117,18 +109,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Dinamis: Atribut & Lokasi Berdasarkan Kategori
+    | Dinamis: Atribut & Lokasi
     |--------------------------------------------------------------------------
     */
-
-    // Pengelolaan Atribut Kategori
     Route::post('/master-categories/{id}/attributes', [MasterCategoryController::class, 'storeAttribute'])->name('master-categories.attributes.store');
     Route::put('/master-categories/attributes/{attribute}', [MasterCategoryController::class, 'updateAttribute']);
-
-    // Update spesifik key/nama atribut (MasterCategoryAttributeController)
     Route::put('/attributes/{attribute}', [MasterCategoryAttributeController::class, 'update']);
 
-    // Pengelolaan Lokasi Kategori
     Route::prefix('master-categories')->group(function () {
         Route::post('/{category}/locations', [MasterCategoryController::class, 'storeLocation']);
         Route::put('/locations/{location}', [MasterCategoryController::class, 'updateLocation']);
@@ -138,16 +125,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::get('/perbaiki-gambar', function () {
-    // Menghapus jembatan lama jika ada yang salah/error
     if (file_exists(public_path('storage'))) {
         rmdir(public_path('storage'));
     }
-
-    // Membuat jembatan baru
     Artisan::call('storage:link');
-
-    return "Jembatan gambar sudah dibuat! Silakan cek kembali halaman List Barang.";
+    return "Jembatan gambar sudah dibuat!";
 });
 
-// Load routes bawaan untuk profil & settings
 require __DIR__ . '/settings.php';

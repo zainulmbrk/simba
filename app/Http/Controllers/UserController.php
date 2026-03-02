@@ -49,27 +49,29 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        // 1. Validasi
         $data = $request->validate([
             'name'      => 'required|string|max:255',
             'email'     => 'required|string|email|max:255|unique:users',
-            'nip'       => 'nullable|string|max:50',
+            'nip'       => 'required|string|unique:users,nip',
             'job_title' => 'nullable|string|max:100',
             'phone'     => 'nullable|string|max:20',
-            'password'  => ['required', 'confirmed', Rules\Password::defaults()],
+            'password'  => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
             'role'      => 'required|in:admin,user',
         ]);
 
+        // 2. Simpan ke model User (Tabel Default Laravel yang sudah Anda modifikasi)
         User::create([
             'name'      => $data['name'],
             'email'     => $data['email'],
             'nip'       => $data['nip'],
             'job_title' => $data['job_title'],
             'phone'     => $data['phone'],
-            'password'  => Hash::make($data['password']),
-            'role'      => $data['role'],
+            'password'  => \Illuminate\Support\Facades\Hash::make($data['password']),
+            'role'      => strtolower($data['role']), // Paksa huruf kecil
         ]);
 
-        return redirect()->back()->with('success', 'User baru berhasil didaftarkan.');
+        return redirect()->back()->with('success', 'Pegawai berhasil didaftarkan.');
     }
 
     public function update(Request $request, User $user)

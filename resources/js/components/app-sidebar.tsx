@@ -69,7 +69,6 @@ export function AppSidebar() {
                 { title: 'Kategori Barang', href: '/master/categories' },
                 { title: 'Status Barang', href: '/master/statuses' },
                 { title: 'Kondisi Barang', href: '/master/conditions' },
-                { title: 'Data Pegawai (User)', href: '/master/user' },
             ],
         },
     ];
