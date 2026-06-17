@@ -45,7 +45,8 @@
     </table>
 
     @php
-        $sekretaris = \App\Models\User::where('job_title', 'like', '%Sekretaris%')->first();
+        // Menggunakan ::query() agar terdeteksi builder dengan benar oleh sistem
+        $sekretaris = \App\Models\User::query()->where('job_title', 'like', '%Sekretaris%')->first();
 
         // --- LOGIKA BLACKLIST ATRIBUT ---
         $excludedKeys = ['specification', 'deskripsi', 'catatan_teknis'];
@@ -63,7 +64,9 @@
             }
         }
 
-        $attributeLabels = \App\Models\MasterCategoryAttribute::where('master_category_id', $category->id)
+        // Ditambahkan ::query() untuk mencegah fatal error salah deteksi argumen query builder
+        $attributeLabels = \App\Models\MasterCategoryAttribute::query()
+            ->where('master_category_id', $category->id)
             ->whereIn('key', $dynamicKeys)
             ->pluck('name', 'key')
             ->toArray();
@@ -75,7 +78,8 @@
                 <th style="width: 25px;">No</th>
                 <th style="width: 85px;">Kode Barang-NUP</th>
                 <th style="width: 100px;">Nama Barang</th>
-                <th style="width: 80px;">Kategori</th> @foreach($dynamicKeys as $key)
+                <th style="width: 80px;">Kategori</th> 
+                @foreach($dynamicKeys as $key)
                     <th>{{ $attributeLabels[$key] ?? ucfirst(str_replace('_', ' ', $key)) }}</th>
                 @endforeach
                 <th style="width: 50px;">Kondisi</th>
@@ -110,9 +114,9 @@
                 Kuasa Pengguna Barang
                 <br><br><br><br><br>
                 <strong>{{ $sekretaris->name ?? '( ................................. )' }}</strong><br>
-                NIP. {{ $sekretaris->employee_id ?? '............................' }}
+                NIP. {{ $sekretaris->nip ?? '............................' }}
             </td>
         </tr>
     </table>
-    </body>
+</body>
 </html>
