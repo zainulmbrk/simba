@@ -69,6 +69,8 @@ export function AppSidebar() {
                 { title: 'Kategori Barang', href: '/master/categories' },
                 { title: 'Status Barang', href: '/master/statuses' },
                 { title: 'Kondisi Barang', href: '/master/conditions' },
+                { title: 'Master Gedung', href: '/master/buildings' },
+                { title: 'Master Ruangan', href: '/master/rooms' },
             ],
         },
     ];

@@ -2,7 +2,7 @@
 namespace App\Exports;
 
 use App\Models\MasterCategoryAttribute;
-use App\Models\MasterUser;
+use App\Models\User;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -20,11 +20,17 @@ class DynamicItemsExport implements FromCollection, WithHeadings, WithMapping, W
     protected $category_name;
     protected $until_date;
 
-    public function __construct($items, $category_name, $until_date)
+    /**
+     * Constructor dengan nilai default pada $until_date untuk mencegah error argumen kurang
+     */
+    public function __construct($items, $category_name, $until_date = null)
     {
         $this->items         = $items;
         $this->category_name = $category_name;
-        $this->until_date    = \Carbon\Carbon::parse($until_date)->format('d-m-Y');
+
+        // Jika $until_date tidak diisi, otomatis menggunakan tanggal hari ini sebagai cadangan
+        $date             = $until_date ?? now()->toDateString();
+        $this->until_date = \Carbon\Carbon::parse($date)->format('d-m-Y');
 
         $category_id = $items->first()->category_id ?? null;
 
@@ -47,7 +53,10 @@ class DynamicItemsExport implements FromCollection, WithHeadings, WithMapping, W
         }
 
         if ($category_id) {
-            $this->labels = MasterCategoryAttribute::where('master_category_id', $category_id)
+            /** @var \Illuminate\Database\Eloquent\Builder $query */
+            $query = MasterCategoryAttribute::query();
+
+            $this->labels = $query->where('master_category_id', $category_id)
                 ->whereIn('key', $this->keys)
                 ->pluck('name', 'key')
                 ->toArray();
@@ -106,7 +115,7 @@ class DynamicItemsExport implements FromCollection, WithHeadings, WithMapping, W
                 $sheet         = $event->sheet->getDelegate();
                 $highestColumn = $sheet->getHighestColumn();
                 $highestRow    = $sheet->getHighestRow();
-                $sekretaris    = MasterUser::where('job_title', 'like', '%Sekretaris%')->first();
+                $sekretaris    = User::query()->where('job_title', 'like', '%Sekretaris%')->first();
 
                 // --- HEADER SECTION ---
                 $sheet->mergeCells("A1:{$highestColumn}1");

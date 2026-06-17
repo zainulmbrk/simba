@@ -14,8 +14,7 @@
         }
         
         .container { 
-            width: 100%;
-            /* Penting: font-size 0 untuk menghilangkan celah antar elemen inline-block */
+            width: 100%;         
             font-size: 0; 
         }
 
@@ -55,7 +54,7 @@
             width: 60px;
         }
 
-        .qr-code {
+        /* .qr-code {
             position: absolute;
             top: 35px;
             right: 12px;
@@ -63,6 +62,33 @@
 
         .qr-code img {
             display: block;
+        } */
+
+        .qr-code {
+            position: absolute;
+            top: 40px;
+            right: 12px;
+            width: 60px;
+            height: 60px;
+        }
+
+        .qr-code img.qr-img {
+            width: 60px;
+            height: 60px;
+            display: block;
+        }
+
+        /* KUNCI: Logo menumpuk di tengah QR */
+        .qr-logo {
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 25px;
+            height: 25px;
+            background-color: white;
+            /* padding: 10px; */
+            border-radius: 2px;
         }
     </style>
 </head>
@@ -80,7 +106,8 @@
                 </div>
                 <div class="qr-code">
                     @if($item->qrcode_image)
-                        <img src="{{ $item->qrcode_image }}" width="50" height="50">
+                        <img src="{{ $item->qrcode_image }}" class="qr-img">
+                        <img src="{{ public_path('assets/logo-kpu.png') }}" class="qr-logo">
                     @endif
                 </div>
             </div>

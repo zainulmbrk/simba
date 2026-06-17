@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\MasterBuildingController;
 use App\Http\Controllers\MasterCategoryAttributeController;
 use App\Http\Controllers\MasterCategoryController;
 use App\Http\Controllers\MasterConditionController;
-use App\Http\Controllers\MasterStatusController;
 // MasterUserController dihapus dari sini
+use App\Http\Controllers\MasterRoomController;
+use App\Http\Controllers\MasterStatusController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Artisan;
@@ -53,12 +55,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/admin/activity-logs', [App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('admin.logs.index');
 
+    // --- Master Gedung (Baru) ---
+    Route::prefix('master/buildings')->name('master.buildings.')->group(function () {
+        Route::get('/', [MasterBuildingController::class, 'index'])->name('index');
+        Route::post('/', [MasterBuildingController::class, 'store'])->name('store');
+        Route::put('/{building}', [MasterBuildingController::class, 'update'])->name('update');
+        Route::delete('/{building}', [MasterBuildingController::class, 'destroy'])->name('destroy');
+    });
+
+    // --- Master Ruangan (Baru) ---
+    Route::prefix('master/rooms')->name('master.rooms.')->group(function () {
+        Route::get('/', [MasterRoomController::class, 'index'])->name('index');
+        Route::post('/', [MasterRoomController::class, 'store'])->name('store');
+        Route::put('/{room}', [MasterRoomController::class, 'update'])->name('update');
+        Route::delete('/{room}', [MasterRoomController::class, 'destroy'])->name('destroy');
+    });
+
     /*
     |--------------------------------------------------------------------------
     | Modul Management Barang (Items)
     |--------------------------------------------------------------------------
     */
     Route::prefix('items')->name('items.')->group(function () {
+        Route::get('/export/kir', [ItemController::class, 'downloadKIR'])->name('export.kir');
         Route::get('/labels/print-all', [ItemController::class, 'downloadAllLabels'])->name('labels.print_all');
         Route::get('/', [ItemController::class, 'index'])->name('index');
         Route::get('/create', [ItemController::class, 'create'])->name('create');

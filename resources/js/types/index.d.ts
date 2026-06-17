@@ -95,3 +95,29 @@ export type ItemAttribute =
       };
 
 export type ItemAttributes = Record<string, ItemAttribute>;
+
+export interface Room {
+    id: number;
+    master_building_id: number;
+    name: string;
+    code?: string;
+}
+
+export interface Building {
+    id: number;
+    name: string;
+    rooms: Room[];
+}
+
+export interface CategoryLocation {
+    id: number;
+    name: string;
+    key: string;
+}
+
+export interface Category {
+    id: number;
+    name: string;
+    locations?: CategoryLocation[]; // Pastikan ini ada
+    attributes?: any[]; 
+}

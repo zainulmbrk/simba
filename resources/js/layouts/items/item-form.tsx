@@ -1,4 +1,4 @@
-import { ItemFormValues } from '@/types';
+import { Building, CategoryLocation, ItemFormValues } from '@/types';
 import { usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -18,6 +18,7 @@ type ItemFormProps = {
     onSubmit: (data: ItemFormValues) => void;
     formId: string;
     itemReferences: { code: string; name: string }[];
+    buildings: Building[];
 };
 
 export function ItemForm({
@@ -33,6 +34,7 @@ export function ItemForm({
     onSubmit,
     formId,
     itemReferences,
+    buildings = [],
 }: ItemFormProps) {
     const {
         register,
@@ -47,6 +49,7 @@ export function ItemForm({
 
     const [searchTerm, setSearchTerm] = useState(initialValues.name || '');
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [selectedBuildingId, setSelectedBuildingId] = useState('');
 
     /* =================== 1. SYNC DATA AWAL (HANYA SEKALI SAAT BUKA) =================== */
     useEffect(() => {
@@ -302,23 +305,111 @@ export function ItemForm({
                     <h3 className="border-b pb-1 text-sm font-bold">
                         Detil Lokasi
                     </h3>
-                    {selectedCategory.locations.map((loc: any) => (
-                        <div key={loc.id}>
-                            <label className="text-xs font-medium text-muted-foreground capitalize">
-                                {loc.name}
-                            </label>
-                            <input
-                                className="w-full rounded border p-2 text-sm"
-                                value={locationValues[loc.key] || ''}
-                                onChange={(e) =>
-                                    setLocationValues((prev) => ({
-                                        ...prev,
-                                        [loc.key]: e.target.value,
-                                    }))
-                                }
-                            />
-                        </div>
-                    ))}
+                    {/* Detil Lokasi Dinamis */}
+                    {selectedCategory?.locations?.map(
+                        (loc: CategoryLocation) => (
+                            <div key={loc.id} className="space-y-1">
+                                <label className="text-xs font-medium text-muted-foreground capitalize">
+                                    {loc.name}
+                                </label>
+
+                                {/* PERBAIKAN: Cek key sesuai database yaitu 'room' */}
+                                {loc.key === 'room' ? (
+                                    <div className="mt-1 space-y-2">
+                                        {/* 1. Pilih Gedung */}
+                                        <select
+                                            className="w-full rounded border bg-white p-2 text-sm"
+                                            value={selectedBuildingId}
+                                            onChange={(e) =>
+                                                setSelectedBuildingId(
+                                                    e.target.value,
+                                                )
+                                            }
+                                        >
+                                            <option value="">
+                                                -- Pilih Gedung --
+                                            </option>
+                                            {buildings?.map((b) => (
+                                                <option
+                                                    key={b.id}
+                                                    value={b.id.toString()}
+                                                >
+                                                    {b.name}
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                        {/* 2. Pilih Ruangan (Terfilter) */}
+                                        <select
+                                            className="w-full rounded border bg-white p-2 text-sm"
+                                            value={
+                                                locationValues[loc.key] || ''
+                                            }
+                                            disabled={!selectedBuildingId}
+                                            onChange={(e) => {
+                                                const building = buildings.find(
+                                                    (b) =>
+                                                        b.id.toString() ===
+                                                        selectedBuildingId,
+                                                );
+                                                const room =
+                                                    building?.rooms.find(
+                                                        (r) =>
+                                                            r.name ===
+                                                            e.target.value,
+                                                    );
+
+                                                setLocationValues((prev) => ({
+                                                    ...prev,
+                                                    [loc.key]: e.target.value,
+                                                    room_code:
+                                                        room?.code ||
+                                                        prev['room_code'] ||
+                                                        '', // Sesuaikan ke room_code
+                                                }));
+                                            }}
+                                        >
+                                            <option value="">
+                                                -- Pilih Ruangan --
+                                            </option>
+                                            {buildings
+                                                ?.find(
+                                                    (b) =>
+                                                        b.id.toString() ===
+                                                        selectedBuildingId,
+                                                )
+                                                ?.rooms?.map((r) => (
+                                                    <option
+                                                        key={r.id}
+                                                        value={r.name}
+                                                    >
+                                                        {r.name}
+                                                    </option>
+                                                ))}
+                                        </select>
+                                    </div>
+                                ) : (
+                                    /* Input untuk key selain 'room' (seperti room_description atau room_code) */
+                                    <input
+                                        className="w-full rounded border p-2 text-sm"
+                                        value={locationValues[loc.key] || ''}
+                                        readOnly={loc.key === 'room_code'} // Baca dari database key-nya 'room_code'
+                                        placeholder={
+                                            loc.key === 'room_code'
+                                                ? 'Otomatis dari ruangan'
+                                                : ''
+                                        }
+                                        onChange={(e) =>
+                                            setLocationValues((prev) => ({
+                                                ...prev,
+                                                [loc.key]: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                )}
+                            </div>
+                        ),
+                    )}
                 </div>
             )}
 

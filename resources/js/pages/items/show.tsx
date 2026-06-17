@@ -5,7 +5,7 @@ import { ItemForm } from '@/layouts/items/item-form';
 import { mapItemToForm } from '@/layouts/items/item-form.helpers';
 import ItemsLayout from '@/layouts/items/layout';
 import type { Item } from '@/types';
-import { type BreadcrumbItem, ItemFormValues } from '@/types';
+import { type BreadcrumbItem, Building, ItemFormValues } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import {
     ChevronDownIcon,
@@ -24,6 +24,7 @@ export default function Item() {
         conditions: any[];
         users: { id: number; name: string; employee_id?: string }[];
         itemReferences: { code: string; name: string }[];
+        buildings: Building[];
         attributeLabels: Record<string, string>;
         locationLabels: Record<string, string>;
     }>();
@@ -468,6 +469,7 @@ export default function Item() {
                     locationValues={locationValues}
                     setLocationValues={setLocationValues}
                     onSubmit={onSubmit}
+                    buildings={props.buildings}
                 />
             </ItemsFormLayout>
         </AppLayout>

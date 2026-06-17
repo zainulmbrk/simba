@@ -12,7 +12,7 @@ import {
 import { buildOptions } from '@/layouts/items/item-options';
 import ItemsLayout from '@/layouts/items/layout';
 import type { Item } from '@/types';
-import { type BreadcrumbItem, ItemFormValues } from '@/types';
+import { type BreadcrumbItem, Building, ItemFormValues } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     EyeIcon,
@@ -32,6 +32,7 @@ export default function ItemsList() {
         conditions: { id: number; name: string }[];
         users: { id: number; name: string; employee_id?: string }[]; //AFTER ADD USER TABLE
         itemReferences: { code: string; name: string }[];
+        buildings: Building[];
         pagination: {
             links: { url: string | null; label: string; active: boolean }[];
             current_page: number;
@@ -74,6 +75,7 @@ export default function ItemsList() {
         'Kode Barang',
         'NUP',
         'Kategori',
+        'Ruangan',
         'Status BMN',
         'Kondisi',
         ...(isAdmin ? ['Pengguna Barang'] : []),
@@ -92,6 +94,7 @@ export default function ItemsList() {
         category: props.filters?.category || '',
         status: props.filters?.status || '',
         condition: props.filters?.condition || '',
+        room: (props.filters as any)?.room || '',
     });
 
     const applyFilters = (newFilters: Partial<typeof filters>) => {
@@ -232,6 +235,24 @@ export default function ItemsList() {
                                     </option>
                                 ))}
                             </select>
+
+                            {/* Dropdown Filter Ruangan */}
+                            <select
+                                value={filters.room}
+                                onChange={(e) =>
+                                    applyFilters({ room: e.target.value })
+                                }
+                                className="w-full rounded border px-2 py-2 text-sm md:w-auto"
+                            >
+                                <option value="">Semua Ruangan</option>
+                                {props.buildings
+                                    .flatMap((b) => b.rooms)
+                                    .map((r) => (
+                                        <option key={r.id} value={r.name}>
+                                            {r.name}
+                                        </option>
+                                    ))}
+                            </select>
                         </div>
 
                         {/* BAGIAN SEARCH DAN TOMBOL AKSI */}
@@ -275,6 +296,21 @@ export default function ItemsList() {
                                         <span className="xs:inline hidden text-xs sm:text-sm">
                                             Cetak
                                         </span>
+                                    </Button>
+                                )}
+                                {filters.room && (
+                                    <Button
+                                        variant="outline"
+                                        className="border-green-600 text-green-600"
+                                        onClick={() =>
+                                            window.open(
+                                                `/items/export/kir?room=${filters.room}`,
+                                                '_blank',
+                                            )
+                                        }
+                                    >
+                                        <PrinterIcon className="mr-2 h-4 w-4" />
+                                        Cetak KIR
                                     </Button>
                                 )}
 
@@ -341,6 +377,19 @@ export default function ItemsList() {
                                                 item.category,
                                                 CATEGORY_OPTIONS,
                                             )}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {/* Cek apakah location_values ada dan memiliki key 'room' */}
+                                            {(item.location_values &&
+                                                (typeof item.location_values ===
+                                                'string'
+                                                    ? JSON.parse(
+                                                          item.location_values,
+                                                      ).room
+                                                    : (
+                                                          item.location_values as any
+                                                      ).room)) ||
+                                                '-'}
                                         </td>
                                         <td className="px-4 py-2">
                                             {getLabel(
@@ -541,6 +590,7 @@ export default function ItemsList() {
                         locationValues={locationValues}
                         setLocationValues={setLocationValues}
                         onSubmit={onSubmit}
+                        buildings={props.buildings}
                     />
                 </ItemsFormLayout>
 

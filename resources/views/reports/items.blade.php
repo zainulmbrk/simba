@@ -45,7 +45,7 @@
     </table>
 
     @php
-        $sekretaris = \App\Models\MasterUser::where('job_title', 'like', '%Sekretaris%')->first();
+        $sekretaris = \App\Models\User::where('job_title', 'like', '%Sekretaris%')->first();
 
         // --- LOGIKA BLACKLIST ATRIBUT ---
         $excludedKeys = ['specification', 'deskripsi', 'catatan_teknis'];

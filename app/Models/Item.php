@@ -54,8 +54,8 @@ class Item extends Model
     {
         if ($eventName === 'updated' && $this->isDirty('user_id')) {
             // Pastikan menggunakan User::class (Tabel Login)
-            $newUser = \App\Models\User::find($this->user_id);
-            $oldUser = \App\Models\User::find($this->getOriginal('user_id'));
+            $newUser = \App\Models\User::query()->find($this->user_id);
+            $oldUser = \App\Models\User::query()->find($this->getOriginal('user_id'));
 
             $activity->properties = $activity->properties->merge([
                 'new_user_name' => $newUser?->name ?? 'Tidak ada',
